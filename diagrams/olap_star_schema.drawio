@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net" modified="2026-11-06T20:41:00.000Z" agent="Antigravity Enterprise Model" version="21.6.8" type="device">
+  <diagram id="star-schema-diagram" name="Data Warehouse Star Schema (SCD Type 2)">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- DIM_DATE -->
+        <mxCell id="dim_date" value="&lt;b&gt;Dim_Date&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ date_key [PK]&#xa;full_date [DATE]&#xa;day_of_month [TINYINT]&#xa;day_name [VARCHAR]&#xa;month_num [TINYINT]&#xa;month_name [VARCHAR]&#xa;quarter_name [VARCHAR]&#xa;year_num [SMALLINT]&#xa;is_weekend [BOOLEAN]" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="60" width="200" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- DIM_DEPARTMENT -->
+        <mxCell id="dim_dept" value="&lt;b&gt;Dim_Department&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ department_sk [PK]&#xa;department_id [NK]&#xa;department_name [VARCHAR]&#xa;cost_center_code [VARCHAR]&#xa;location [VARCHAR]&#xa;created_at [TIMESTAMP]" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="60" width="220" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- DIM_EMPLOYEE (SCD TYPE 2) -->
+        <mxCell id="dim_emp" value="&lt;b&gt;Dim_Employee (SCD Type 2)&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ employee_sk [PK]&#xa;employee_id [NK]&#xa;employee_number [VARCHAR]&#xa;full_name [VARCHAR]&#xa;gender [VARCHAR]&#xa;age [INT]&#xa;department_name [VARCHAR - SCD2]&#xa;job_role [VARCHAR - SCD2]&#xa;job_level [INT - SCD2]&#xa;monthly_income [DECIMAL - SCD2]&#xa;education_field [VARCHAR]&#xa;years_at_company [INT]&#xa;attrition [VARCHAR - SCD2]&#xa;hire_date [DATE]&#xa;&lt;b&gt;effective_start_date [DATE]&lt;/b&gt;&#xa;&lt;b&gt;effective_end_date [DATE]&lt;/b&gt;&#xa;&lt;b&gt;is_current [BOOLEAN]&lt;/b&gt;&#xa;&lt;b&gt;version [INT]&lt;/b&gt;" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="240" height="360" as="geometry" />
+        </mxCell>
+
+        <!-- DIM_PROJECT -->
+        <mxCell id="dim_proj" value="&lt;b&gt;Dim_Project&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ project_sk [PK]&#xa;project_id [NK]&#xa;project_code [VARCHAR]&#xa;project_name [VARCHAR]&#xa;priority [VARCHAR]&#xa;status [VARCHAR]&#xa;budget [DECIMAL]&#xa;created_at [TIMESTAMP]" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="390" width="220" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- FACT_PERFORMANCEREVIEWS (CENTER FACT) -->
+        <mxCell id="fact_rev" value="&lt;b&gt;Fact_PerformanceReviews&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ fact_id [PK]&#xa;review_id [DD]&#xa;# employee_sk [FK]&#xa;# department_sk [FK]&#xa;# review_date_key [FK]&#xa;[M] performance_rating [INT]&#xa;[M] work_life_balance [INT]&#xa;[M] job_satisfaction [INT]&#xa;[M] training_times_last_year [INT]&#xa;[M] monthly_income [DECIMAL]&#xa;created_at [TIMESTAMP]" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#f8cecc;strokeColor=#b85450;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="100" width="240" height="230" as="geometry" />
+        </mxCell>
+
+        <!-- FACT_PROJECTALLOCATIONS -->
+        <mxCell id="fact_alloc" value="&lt;b&gt;Fact_ProjectAllocations&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ allocation_fact_id [PK]&#xa;assignment_id [DD]&#xa;# employee_sk [FK]&#xa;# project_sk [FK]&#xa;# assigned_date_key [FK]&#xa;[M] allocation_pct [INT]&#xa;assigned_role [VARCHAR]&#xa;created_at [TIMESTAMP]" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#ffe6cc;strokeColor=#d79b00;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="440" width="240" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- FACT CONNECTIONS -->
+        <mxCell id="fedge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.3;" edge="1" source="dim_date" target="fact_rev" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fedge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.3;" edge="1" source="dim_dept" target="fact_rev" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fedge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.2;entryX=0;entryY=0.7;" edge="1" source="dim_emp" target="fact_rev" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fedge4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.7;entryX=0;entryY=0.5;" edge="1" source="dim_emp" target="fact_alloc" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fedge5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="dim_proj" target="fact_alloc" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fedge6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.2;entryY=0;" edge="1" source="dim_date" target="fact_alloc" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

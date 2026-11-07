@@ -1,0 +1,72 @@
+<mxfile host="app.diagrams.net" modified="2026-11-06T20:40:00.000Z" agent="Antigravity Enterprise Model" version="21.6.8" type="device">
+  <diagram id="oltp-er-diagram" name="OLTP 3NF Entity Relationship Diagram">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- DEPARTMENTS -->
+        <mxCell id="dept" value="&lt;b&gt;departments&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ department_id [PK]&#xa;department_name [VARCHAR]&#xa;cost_center_code [VARCHAR]&#xa;location [VARCHAR]&#xa;created_at [TIMESTAMP]" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="200" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- EMPLOYEES -->
+        <mxCell id="emp" value="&lt;b&gt;employees&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ employee_id [PK]&#xa;employee_number [VARCHAR UK]&#xa;first_name [VARCHAR]&#xa;last_name [VARCHAR]&#xa;email [VARCHAR UK]&#xa;gender [VARCHAR]&#xa;age [INT]&#xa;# department_id [FK]&#xa;job_role [VARCHAR]&#xa;job_level [INT]&#xa;monthly_income [DECIMAL]&#xa;education_field [VARCHAR]&#xa;years_at_company [INT]&#xa;attrition [ENUM]&#xa;hire_date [DATE]&#xa;updated_at [TIMESTAMP]" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="50" width="220" height="290" as="geometry" />
+        </mxCell>
+
+        <!-- PROJECTS -->
+        <mxCell id="proj" value="&lt;b&gt;projects&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ project_id [PK]&#xa;project_code [VARCHAR UK]&#xa;project_name [VARCHAR]&#xa;# department_id [FK]&#xa;priority [ENUM]&#xa;status [ENUM]&#xa;start_date [DATE]&#xa;end_date [DATE]&#xa;budget [DECIMAL]&#xa;created_at [TIMESTAMP]" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#ffe6cc;strokeColor=#d79b00;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="200" height="190" as="geometry" />
+        </mxCell>
+
+        <!-- PROJECT ASSIGNMENTS -->
+        <mxCell id="asgn" value="&lt;b&gt;project_assignments&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ assignment_id [PK]&#xa;# employee_id [FK]&#xa;# project_id [FK]&#xa;assigned_role [VARCHAR]&#xa;allocation_pct [INT]&#xa;assigned_date [DATE]&#xa;released_date [DATE]&#xa;created_at [TIMESTAMP]" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#fff2cc;strokeColor=#d6b656;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="430" width="200" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- PERFORMANCE REVIEWS -->
+        <mxCell id="rev" value="&lt;b&gt;performance_reviews&lt;/b&gt;&#xa;&lt;hr&gt;&#xa;+ review_id [PK]&#xa;# employee_id [FK]&#xa;review_date [DATE]&#xa;review_cycle [VARCHAR]&#xa;performance_rating [INT]&#xa;work_life_balance [INT]&#xa;job_satisfaction [INT]&#xa;training_times_last_year [INT]&#xa;reviewer_comments [TEXT]&#xa;created_at [TIMESTAMP]" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#e1d5e7;strokeColor=#9673a6;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="220" height="210" as="geometry" />
+        </mxCell>
+
+        <!-- RELATIONSHIPS -->
+        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.3;" edge="1" source="dept" target="emp" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl1" value="1 : N" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge1">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="dept" target="proj" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl2" value="1 : N" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge2">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="emp" target="asgn" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl3" value="1 : N" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge3">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="proj" target="asgn" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl4" value="1 : N" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge4">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.3;entryX=0;entryY=0.3;" edge="1" source="emp" target="rev" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl5" value="1 : N" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge5">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
