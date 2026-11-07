@@ -89,7 +89,16 @@ Get-Content "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-ware
 
 ---
 
-## 4. Phase 3 & 4: Python Backend & Streamlit Application
+## 4. Phase 3: Python Application Logic (OOP)
+
+### Run Phase 3 Unit Tests (Singleton, Entities & DAL)
+```powershell
+python -m unittest tests/test_phase3.py
+```
+
+---
+
+## 5. Phase 4: Streamlit UI and Interactive Dashboards
 
 ### Run Streamlit Web Application Locally
 Launches the full interactive HR Management and Analytics Dashboard:
@@ -100,7 +109,7 @@ python -m streamlit run app/main.py
 
 ---
 
-## 5. Git Branching & Version Control Commands
+## 6. Git Branching & Version Control Commands
 
 ### Initialize Git & Initial Phase 1 Commit
 ```powershell
@@ -132,4 +141,13 @@ git log --oneline --graph --decorate
 ```powershell
 git checkout main
 git merge feature/advanced-sql-etl --no-edit
+```
+
+
+### Create Phase 3 Feature Branch & Commit
+```powershell
+git checkout -b feature/python-oop-backend
+git add .
+git commit -m "feat(phase-3): modular OOP backend with Singleton DB manager, domain entities, and DAL managers"
+git push -u origin feature/python-oop-backend
 ```
