@@ -110,3 +110,4 @@ def render_project_mgmt_view(provider: DataProvider):
                     st.success(f"✅ Assigned {emp_options[e_id]} to {proj_options[p_id]} at {alloc_pct}% capacity!")
         else:
             st.info("Ensure both projects and employees are present in the system.")
+

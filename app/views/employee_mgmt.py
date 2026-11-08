@@ -193,3 +193,4 @@ def render_employee_mgmt_view(provider: DataProvider):
                     st.warning(f"Employee #{term_emp_id} has been marked as Attrited.")
         else:
             st.info("No active employees available to terminate.")
+

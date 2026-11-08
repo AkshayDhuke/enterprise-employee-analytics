@@ -506,3 +506,4 @@ class DataProvider:
             {"project_id": 4, "project_code": "PRJ-03-0004", "project_name": "Automated HR Onboarding Portal", "department_id": 3, "department_name": "Human Resources", "priority": "Medium", "status": "Completed", "start_date": "2023-08-01", "end_date": "2024-01-20", "budget": 200000.0},
             {"project_id": 5, "project_code": "PRJ-05-0005", "project_name": "ERP Cost Center Consolidation", "department_id": 5, "department_name": "Finance & Operations", "priority": "High", "status": "Active", "start_date": "2024-04-01", "end_date": "2024-11-30", "budget": 600000.0},
         ]
+

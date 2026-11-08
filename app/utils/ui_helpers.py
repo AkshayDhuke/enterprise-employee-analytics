@@ -123,3 +123,4 @@ def render_section_header(title: str, subtitle: str = ""):
     st.markdown(f'<div class="section-header">{title}</div>', unsafe_allow_html=True)
     if subtitle:
         st.caption(subtitle)
+

@@ -122,3 +122,4 @@ def render_database_admin_view(provider: DataProvider):
                         st.info("Query returned 0 rows.")
                 except Exception as ex:
                     st.error(f"SQL Execution Error: {ex}")
+

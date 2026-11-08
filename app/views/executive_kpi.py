@@ -111,3 +111,4 @@ def render_executive_kpi_view(provider: DataProvider):
         display_df["avg_salary"] = display_df["avg_salary"].apply(lambda x: f"${x:,.2f}")
         display_df.columns = ["Department Name", "Active Headcount", "Average Monthly Salary", "Total Attrition"]
         st.dataframe(display_df, use_container_width=True, hide_index=True)
+

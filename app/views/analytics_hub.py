@@ -320,3 +320,4 @@ ORDER BY total_allocation_pct DESC;
                 """,
                 language="sql",
             )
+

@@ -88,3 +88,4 @@ def render_review_mgmt_view(provider: DataProvider):
             st.dataframe(df_disp, use_container_width=True, hide_index=True)
         else:
             st.info("No historical reviews recorded.")
+
