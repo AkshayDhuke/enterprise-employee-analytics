@@ -100,10 +100,17 @@ python -m unittest tests/test_phase3.py
 
 ## 5. Phase 4: Streamlit UI and Interactive Dashboards
 
+### Run Phase 4 Unit & Integration Tests
+Validates the unified data provider, all 5 SQL analytical query pipelines, Plotly chart factories, and CRUD sync:
+```powershell
+python -m unittest tests/test_phase4.py
+# Or run all project tests across Phase 3 and Phase 4:
+python -m unittest discover -s tests
+```
+
 ### Run Streamlit Web Application Locally
 Launches the full interactive HR Management and Analytics Dashboard:
 ```powershell
-cd "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse"
 python -m streamlit run app/main.py
 ```
 
@@ -113,7 +120,6 @@ python -m streamlit run app/main.py
 
 ### Initialize Git & Initial Phase 1 Commit
 ```powershell
-cd "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse"
 git init
 git checkout -b main
 git add .
@@ -143,11 +149,17 @@ git checkout main
 git merge feature/advanced-sql-etl --no-edit
 ```
 
-
 ### Create Phase 3 Feature Branch & Commit
 ```powershell
 git checkout -b feature/python-oop-backend
 git add .
 git commit -m "feat(phase-3): modular OOP backend with Singleton DB manager, domain entities, and DAL managers"
 git push -u origin feature/python-oop-backend
+```
+
+### Create Phase 4 Feature Branch & Commit
+```powershell
+git checkout -b feature/phase-4-streamlit
+git add .
+git commit -m "feat(phase-4): interactive Streamlit dashboard, executive KPIs, advanced SQL window functions UI, and OLTP management"
 ```
