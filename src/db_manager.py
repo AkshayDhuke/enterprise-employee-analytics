@@ -19,16 +19,17 @@ class DatabaseConnection:
     Ensures only a single instance manages the MySQL database connection pools
     for enterprise_oltp and enterprise_dw across the entire application lifecycle.
     """
-    _instance = None
+    _instances = {}
     _lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
-        if not cls._instance:
+        if cls not in cls._instances:
             with cls._lock:
-                if not cls._instance:
-                    cls._instance = super(DatabaseConnection, cls).__new__(cls)
-                    cls._instance._initialized = False
-        return cls._instance
+                if cls not in cls._instances:
+                    instance = super(DatabaseConnection, cls).__new__(cls)
+                    instance._initialized = False
+                    cls._instances[cls] = instance
+        return cls._instances[cls]
 
     def __init__(
         self,
