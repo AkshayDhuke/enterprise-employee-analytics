@@ -1,9 +1,19 @@
 """
 Enterprise Employee Analytics & Data Warehouse System
-Phase 4: Interactive Executive Streamlit Application
+Phase 4: Streamlit Web Application
 
-Entry point for corporate dashboard, analytical SQL window function visualizations,
-OLTP HR management, and SCD Type 2 dimension lifecycle tracking.
+Strictly streamlined and focused on the two deliverables required:
+1. Analytics Dashboard (OLAP Interaction):
+   - Direct connection to Data Warehouse (Star Schema)
+   - Interactive charts:
+     - High-level KPIs
+     - Top-performing employees by department (SQL Window Function DENSE_RANK)
+     - Year-over-year performance & salary trends (SQL Window Function LAG)
+     - Employee attrition risk & bottlenecks (SQL Window Function NTILE 4)
+
+2. Data Entry Module (OLTP Interaction & SCD Type 2):
+   - Forms to onboard new employees, create projects, and submit performance reviews
+   - Form to update employee department and role, triggering SCD Type 2 history in Data Warehouse
 """
 
 import sys
@@ -19,12 +29,8 @@ import streamlit as st
 from app.config import APP_TITLE, APP_SUBTITLE, APP_ICON, PAGES
 from app.data_provider import DataProvider
 from app.utils.ui_helpers import apply_custom_css
-from app.views.executive_kpi import render_executive_kpi_view
-from app.views.analytics_hub import render_analytics_hub_view
-from app.views.employee_mgmt import render_employee_mgmt_view
-from app.views.project_mgmt import render_project_mgmt_view
-from app.views.review_mgmt import render_review_mgmt_view
-from app.views.database_admin import render_database_admin_view
+from app.views.analytics_dashboard import render_analytics_dashboard
+from app.views.data_entry_module import render_data_entry_module
 
 
 def main():
@@ -36,7 +42,7 @@ def main():
         initial_sidebar_state="expanded",
     )
 
-    # Apply corporate theme
+    # Apply clean corporate theme
     apply_custom_css()
 
     # Initialize shared DataProvider in session state
@@ -57,41 +63,28 @@ def main():
         if provider.is_live:
             st.success("🟢 **Live MySQL Connected**\n`enterprise_oltp` & `enterprise_dw` active")
         else:
-            st.warning("🟡 **Interactive Demo Mode**\nMySQL offline. Running on synthetic OLAP dataset.")
+            st.info("ℹ️ **Interactive Demo Mode**\nRunning on synthesized warehouse dataset (100k+ records).")
 
         st.divider()
 
-        # Page Navigation
+        # Page Navigation (Simple 2-Module Selection)
         selected_page_key = st.radio(
-            "🧭 System Navigation:",
+            "🧭 Select Project Module:",
             options=list(PAGES.keys()),
             format_func=lambda k: PAGES[k],
             index=0,
         )
 
-        st.divider()
 
-        # Sidebar Footer
-        st.caption("🏢 **Enterprise Data Platform** | v4.0.0")
-        st.caption("Phase 4: Streamlit UI & Analytical Dashboards")
 
     # -------------------------------------------------------------------------
     # Page Routing
     # -------------------------------------------------------------------------
-    if selected_page_key == "kpi_overview":
-        render_executive_kpi_view(provider)
-    elif selected_page_key == "advanced_analytics":
-        render_analytics_hub_view(provider)
-    elif selected_page_key == "employee_ops":
-        render_employee_mgmt_view(provider)
-    elif selected_page_key == "project_allocations":
-        render_project_mgmt_view(provider)
-    elif selected_page_key == "review_hub":
-        render_review_mgmt_view(provider)
-    elif selected_page_key == "warehouse_admin":
-        render_database_admin_view(provider)
+    if selected_page_key == "analytics_dashboard":
+        render_analytics_dashboard(provider)
+    elif selected_page_key == "data_entry_module":
+        render_data_entry_module(provider)
 
 
 if __name__ == "__main__":
     main()
-
