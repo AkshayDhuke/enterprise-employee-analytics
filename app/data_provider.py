@@ -398,7 +398,7 @@ class DataProvider:
     def _init_demo_dataset(self):
         """Initializes realistic enterprise datasets for zero-config offline execution."""
         self._demo_kpis = {
-            "total_headcount": 1470,
+            "total_headcount": 100000,
             "avg_monthly_income": 6502.93,
             "attrition_rate": 16.12,
             "avg_performance_rating": 3.78,
@@ -409,13 +409,11 @@ class DataProvider:
             "total_budget": 14250000.0,
         }
 
-        # Demo Department Summary
+        # Demo Department Summary (scaled to full 100,000 workforce)
         self._demo_dept_summary = pd.DataFrame([
-            {"department_name": "Research & Development", "headcount": 680, "avg_salary": 6850.50, "attrited": 95},
-            {"department_name": "Engineering & IT", "headcount": 390, "avg_salary": 7200.00, "attrited": 52},
-            {"department_name": "Sales", "headcount": 250, "avg_salary": 6120.40, "attrited": 60},
-            {"department_name": "Human Resources", "headcount": 80, "avg_salary": 5300.00, "attrited": 18},
-            {"department_name": "Finance & Operations", "headcount": 70, "avg_salary": 7500.00, "attrited": 12},
+            {"department_name": "Research & Development", "headcount": 65330, "avg_salary": 6850.50, "attrited": 9210},
+            {"department_name": "Sales", "headcount": 30610, "avg_salary": 6120.40, "attrited": 5820},
+            {"department_name": "Human Resources", "headcount": 4060, "avg_salary": 5300.00, "attrited": 1090},
         ])
 
         # Demo Employees

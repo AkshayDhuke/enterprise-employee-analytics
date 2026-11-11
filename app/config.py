@@ -16,14 +16,14 @@ APP_TITLE = "Enterprise HR Analytics & Warehouse System"
 APP_SUBTITLE = "OLTP Operations, Dimensional Warehouse & Executive Analytics"
 APP_ICON = "🏢"
 
-# Navigation Menu Options
+# Navigation Menu Options (Simplified for clean usability)
 PAGES = {
-    "kpi_overview": "Executive KPI Overview",
-    "advanced_analytics": "Advanced SQL & Window Functions",
-    "employee_ops": "Employee Directory & SCD Type 2",
-    "project_allocations": "Project Allocations & Capacity",
-    "review_hub": "Performance Review Evaluation",
-    "warehouse_admin": "Data Warehouse & DB Health",
+    "kpi_overview": "📊 Executive Dashboard",
+    "advanced_analytics": "⚡ Advanced Analytics",
+    "employee_ops": "👥 Employee Directory",
+    "project_allocations": "📁 Projects & Budget",
+    "review_hub": "⭐ Performance Reviews",
+    "warehouse_admin": "🛠️ System & Database Health",
 }
 
 # Departments list
