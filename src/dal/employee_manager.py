@@ -114,7 +114,12 @@ class EmployeeManager(BaseManager):
 
     def get_employee_by_id(self, employee_id: int) -> Optional[Employee]:
         """Fetches an active employee by ID."""
-        sql = "SELECT * FROM employees WHERE employee_id = :emp_id;"
+        sql = """
+            SELECT e.*, d.department_name 
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.department_id
+            WHERE e.employee_id = :emp_id;
+        """
         rows = self.execute_query(sql, {"emp_id": employee_id})
         if not rows:
             return None
@@ -122,7 +127,12 @@ class EmployeeManager(BaseManager):
 
     def get_employee_by_number(self, employee_number: str) -> Optional[Employee]:
         """Fetches an employee by their unique business employee_number."""
-        sql = "SELECT * FROM employees WHERE employee_number = :emp_num;"
+        sql = """
+            SELECT e.*, d.department_name 
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.department_id
+            WHERE e.employee_number = :emp_num;
+        """
         rows = self.execute_query(sql, {"emp_num": employee_number})
         if not rows:
             return None
@@ -140,16 +150,18 @@ class EmployeeManager(BaseManager):
         params: Dict[str, Any] = {"limit": limit, "offset": offset}
 
         if department_id:
-            where_clauses.append("department_id = :dept_id")
+            where_clauses.append("e.department_id = :dept_id")
             params["dept_id"] = department_id
         if attrition:
-            where_clauses.append("attrition = :attrition")
+            where_clauses.append("e.attrition = :attrition")
             params["attrition"] = attrition
 
         sql = f"""
-            SELECT * FROM employees 
+            SELECT e.*, d.department_name 
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.department_id
             WHERE {' AND '.join(where_clauses)}
-            ORDER BY employee_id DESC
+            ORDER BY e.employee_id DESC
             LIMIT :limit OFFSET :offset;
         """
         rows = self.execute_query(sql, params)
@@ -158,13 +170,15 @@ class EmployeeManager(BaseManager):
     def search_employees(self, search_term: str, limit: int = 50) -> List[Employee]:
         """Searches employees by name, email, employee_number, or job role."""
         sql = """
-            SELECT * FROM employees
-            WHERE first_name LIKE :term 
-               OR last_name LIKE :term 
-               OR email LIKE :term 
-               OR employee_number LIKE :term 
-               OR job_role LIKE :term
-            ORDER BY employee_id DESC
+            SELECT e.*, d.department_name 
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.department_id
+            WHERE e.first_name LIKE :term 
+               OR e.last_name LIKE :term 
+               OR e.email LIKE :term 
+               OR e.employee_number LIKE :term 
+               OR e.job_role LIKE :term
+            ORDER BY e.employee_id DESC
             LIMIT :limit;
         """
         rows = self.execute_query(sql, {"term": f"%{search_term}%", "limit": limit})

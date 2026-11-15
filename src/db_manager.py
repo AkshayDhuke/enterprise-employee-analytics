@@ -49,12 +49,24 @@ class DatabaseConnection:
             if self._initialized:
                 return
 
-            self.user = user or os.getenv("DB_USER", "root")
-            self.password = password or os.getenv("DB_PASSWORD", "root@2003")
-            self.host = host or os.getenv("DB_HOST", "127.0.0.1")
-            self.port = port or os.getenv("DB_PORT", "3306")
-            self.oltp_db = oltp_db
-            self.dw_db = dw_db
+            def _get_val(key: str, default: str) -> str:
+                val = os.getenv(key)
+                if val:
+                    return val
+                try:
+                    import streamlit as st
+                    if hasattr(st, "secrets") and key in st.secrets:
+                        return str(st.secrets[key])
+                except Exception:
+                    pass
+                return default
+
+            self.user = user or _get_val("DB_USER", "root")
+            self.password = password or _get_val("DB_PASSWORD", "root@2003")
+            self.host = host or _get_val("DB_HOST", "127.0.0.1")
+            self.port = port or _get_val("DB_PORT", "3306")
+            self.oltp_db = oltp_db or _get_val("OLTP_DB_NAME", "enterprise_oltp")
+            self.dw_db = dw_db or _get_val("DW_DB_NAME", "enterprise_dw")
 
             encoded_pwd = urllib.parse.quote_plus(self.password)
             # Connection URLs
@@ -67,6 +79,11 @@ class DatabaseConnection:
             self._oltp_engine: Engine = None
             self._dw_engine: Engine = None
 
+            # SSL connect args for cloud databases (e.g. TiDB Cloud)
+            self._connect_args = {}
+            if os.getenv("DB_SSL", "false").lower() in ("true", "1") or "tidbcloud.com" in self.host.lower():
+                self._connect_args["ssl"] = {}
+
             self._initialized = True
 
     @property
@@ -77,6 +94,7 @@ class DatabaseConnection:
                 if self._oltp_engine is None:
                     self._oltp_engine = create_engine(
                         self._oltp_url,
+                        connect_args=self._connect_args,
                         pool_size=self._pool_size,
                         max_overflow=self._max_overflow,
                         pool_recycle=3600,
@@ -92,6 +110,7 @@ class DatabaseConnection:
                 if self._dw_engine is None:
                     self._dw_engine = create_engine(
                         self._dw_url,
+                        connect_args=self._connect_args,
                         pool_size=self._pool_size,
                         max_overflow=self._max_overflow,
                         pool_recycle=3600,

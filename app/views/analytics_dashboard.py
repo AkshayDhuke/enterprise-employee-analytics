@@ -107,7 +107,10 @@ def render_analytics_dashboard(provider: DataProvider):
 
         # Employee selector for trajectory
         all_emps = provider.get_all_employees(limit=25)
-        emp_options = {e["employee_id"]: f"{e['full_name']} ({e['job_role']} - {e['department_name']})" for e in all_emps}
+        emp_options = {
+            e["employee_id"]: f"{e.get('full_name', 'Employee')} ({e.get('job_role', 'N/A')} - {e.get('department_name', 'General')})"
+            for e in all_emps
+        }
         
         default_id = list(emp_options.keys())[0] if emp_options else 101
         selected_emp_id = st.selectbox(

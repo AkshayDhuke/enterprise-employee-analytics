@@ -17,6 +17,7 @@ from src.dal.review_manager import ReviewManager
 from src.entities.employee import Employee
 from src.entities.project import Project
 from src.entities.review import Review
+from app.config import DEFAULT_DEPARTMENTS
 
 
 class DataProvider:
@@ -210,13 +211,20 @@ class DataProvider:
         search_term: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Retrieves active employee list for management view."""
+        dept_map = {d["department_id"]: d["department_name"] for d in DEFAULT_DEPARTMENTS}
         if self._is_live:
             try:
                 if search_term:
                     emps = self.employee_dal.search_employees(search_term, limit=limit)
                 else:
                     emps = self.employee_dal.get_all_employees(limit=limit, offset=offset, department_id=department_id)
-                return [e.to_dict() for e in emps]
+                res = []
+                for e in emps:
+                    d = e.to_dict()
+                    if not d.get("department_name"):
+                        d["department_name"] = dept_map.get(d.get("department_id"), "General")
+                    res.append(d)
+                return res
             except Exception:
                 pass
 
@@ -233,7 +241,11 @@ class DataProvider:
                 or term in e.get("job_role", "").lower()
                 or term in e.get("employee_number", "").lower()
             ]
-        return emps[offset: offset + limit]
+        sliced = emps[offset: offset + limit]
+        for e in sliced:
+            if not e.get("department_name"):
+                e["department_name"] = dept_map.get(e.get("department_id"), "General")
+        return sliced
 
     def create_employee(self, emp_data: Dict[str, Any]) -> int:
         """Creates a new employee record and syncs to warehouse."""
@@ -249,30 +261,57 @@ class DataProvider:
         emp_data["employee_id"] = new_id
         emp_data["employee_number"] = f"EMP-{new_id:05d}"
         emp_data["full_name"] = f"{emp_data.get('first_name', '')} {emp_data.get('last_name', '')}".strip()
+        dept_map = {d["department_id"]: d["department_name"] for d in DEFAULT_DEPARTMENTS}
+        if not emp_data.get("department_name"):
+            emp_data["department_name"] = dept_map.get(emp_data.get("department_id"), "General")
         self._demo_employees.insert(0, emp_data)
         return new_id
 
     def update_employee_scd2(
         self,
         employee_id: int,
-        new_dept_id: int,
-        new_role: str,
-        new_level: int,
-        new_salary: float,
-        effective_date: Optional[date] = None,
-        attrition: str = "No"
+        new_dept_id: Optional[int] = None,
+        new_role: Optional[str] = None,
+        new_level: Optional[int] = None,
+        new_salary: Optional[float] = None,
+        effective_date: Optional[Any] = None,
+        attrition: str = "No",
+        **kwargs
     ) -> bool:
         """Executes SCD Type 2 progression update in DW and updates OLTP profile."""
+        if new_dept_id is None:
+            new_dept_id = kwargs.get("new_department_id", 1)
+        if new_role is None:
+            new_role = kwargs.get("new_job_role", "Software Engineer")
+        if new_level is None:
+            new_level = kwargs.get("new_job_level", 1)
+        if new_salary is None:
+            new_salary = kwargs.get("new_salary", 5000.0)
+        if effective_date is None:
+            effective_date = kwargs.get("promotion_date", date.today())
+        if isinstance(effective_date, str):
+            from datetime import datetime
+            try:
+                effective_date = datetime.strptime(effective_date, "%Y-%m-%d").date()
+            except Exception:
+                effective_date = date.today()
+
         if self._is_live:
             try:
                 return self.employee_dal.update_employee_scd2(
-                    employee_id, new_dept_id, new_role, new_level, new_salary, attrition, effective_date
+                    employee_id=employee_id,
+                    new_department_id=new_dept_id,
+                    new_job_role=new_role,
+                    new_job_level=new_level,
+                    new_salary=new_salary,
+                    attrition=attrition,
+                    effective_date=effective_date,
                 )
             except Exception:
                 pass
 
         # Emulate SCD2 update in demo dataset
-        dept_names = {1: "Research & Development", 2: "Sales", 3: "Human Resources", 4: "Engineering & IT", 5: "Finance & Operations"}
+        dept_names = {1: "Sales", 2: "Research & Development", 3: "Human Resources", 4: "Engineering & IT", 5: "Finance & Operations"}
         dept_name = dept_names.get(new_dept_id, "General")
         today_str = str(effective_date or date.today())
 

@@ -90,7 +90,10 @@ def render_data_entry_module(provider: DataProvider):
 
         all_emps = provider.get_all_employees(limit=50)
         if all_emps:
-            emp_map = {e["employee_id"]: f"{e['full_name']} (ID: {e['employee_id']} | Dept: {e['department_name']} | Role: {e['job_role']})" for e in all_emps}
+            emp_map = {
+                e["employee_id"]: f"{e.get('full_name', 'Employee')} (ID: {e['employee_id']} | Dept: {e.get('department_name', 'General')} | Role: {e.get('job_role', 'N/A')})"
+                for e in all_emps
+            }
             selected_emp_id = st.selectbox(
                 "Select Employee to Update / Promote:",
                 options=list(emp_map.keys()),
@@ -104,10 +107,15 @@ def render_data_entry_module(provider: DataProvider):
             if current_emp:
                 st.markdown("##### Current Employee State in Database:")
                 c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Current Department", current_emp["department_name"])
-                c2.metric("Current Role", current_emp["job_role"])
-                c3.metric("Current Job Level", f"Level {current_emp['job_level']}")
-                c4.metric("Current Monthly Income", f"${current_emp['monthly_income']:,.2f}")
+                curr_dept = current_emp.get("department_name", "General")
+                curr_role = current_emp.get("job_role", "Software Engineer")
+                curr_level = current_emp.get("job_level", 1)
+                curr_income = float(current_emp.get("monthly_income", 0.0))
+
+                c1.metric("Current Department", curr_dept)
+                c2.metric("Current Role", curr_role)
+                c3.metric("Current Job Level", f"Level {curr_level}")
+                c4.metric("Current Monthly Income", f"${curr_income:,.2f}")
 
                 st.divider()
 
@@ -117,19 +125,27 @@ def render_data_entry_module(provider: DataProvider):
 
                     with f_col1:
                         dept_names = [d["department_name"] for d in DEFAULT_DEPARTMENTS]
-                        new_dept_name = st.selectbox("New Department *", dept_names, index=dept_names.index(current_emp["department_name"]) if current_emp["department_name"] in dept_names else 0)
+                        new_dept_name = st.selectbox(
+                            "New Department *",
+                            dept_names,
+                            index=dept_names.index(curr_dept) if curr_dept in dept_names else 0
+                        )
                         dept_id_map = {d["department_name"]: d["department_id"] for d in DEFAULT_DEPARTMENTS}
                         new_dept_id = dept_id_map[new_dept_name]
 
-                        new_role = st.selectbox("New Job Role *", JOB_ROLES, index=JOB_ROLES.index(current_emp["job_role"]) if current_emp["job_role"] in JOB_ROLES else 0)
+                        new_role = st.selectbox(
+                            "New Job Role *",
+                            JOB_ROLES,
+                            index=JOB_ROLES.index(curr_role) if curr_role in JOB_ROLES else 0
+                        )
 
                     with f_col2:
-                        new_level = st.slider("New Job Level (1 to 5)", min_value=1, max_value=5, value=min(current_emp["job_level"] + 1, 5))
+                        new_level = st.slider("New Job Level (1 to 5)", min_value=1, max_value=5, value=min(curr_level + 1, 5))
                         new_salary = st.number_input(
                             "New Monthly Income ($) *",
                             min_value=1000.0,
                             max_value=60000.0,
-                            value=float(current_emp["monthly_income"]) * 1.15,
+                            value=float(curr_income) * 1.15 if curr_income > 0 else 5000.0,
                             step=500.0,
                         )
 
@@ -138,11 +154,11 @@ def render_data_entry_module(provider: DataProvider):
                     if update_btn:
                         success = provider.update_employee_scd2(
                             employee_id=selected_emp_id,
-                            new_department_id=new_dept_id,
+                            new_dept_id=new_dept_id,
                             new_role=new_role,
                             new_salary=float(new_salary),
                             new_level=new_level,
-                            promotion_date=str(date.today()),
+                            effective_date=date.today(),
                         )
                         if success:
                             st.success(f"✨ Successfully triggered SCD Type 2 update! Department set to **{new_dept_name}** at **${new_salary:,.2f}/mo**.")
