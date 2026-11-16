@@ -43,13 +43,28 @@ class DataProvider:
         self._init_demo_dataset()
 
     def _check_connectivity(self):
-        """Probes MySQL connectivity."""
+        """Probes MySQL connectivity, with automatic cloud fallback."""
         try:
             self._connection_status = self.db.test_connections()
             self._is_live = bool(self._connection_status.get("oltp") and self._connection_status.get("dw"))
         except Exception as e:
             self._connection_status = {"oltp": False, "dw": False, "errors": {"exception": str(e)}}
             self._is_live = False
+
+        # If local host failed, automatically try TiDB Cloud fallback
+        if not self._is_live and self.db.host in ("127.0.0.1", "localhost"):
+            try:
+                cloud_status = self.reconnect(
+                    user="3W1Y2fU7xQME74Y.root",
+                    password="h9U454ewoOyWb4MH",
+                    host="gateway01.ap-northeast-1.prod.aws.tidbcloud.com",
+                    port="4000"
+                )
+                if cloud_status.get("oltp") and cloud_status.get("dw"):
+                    self._is_live = True
+                    self._connection_status = cloud_status
+            except Exception:
+                pass
 
     @property
     def is_live(self) -> bool:
@@ -72,7 +87,8 @@ class DataProvider:
         self.review_dal = ReviewManager()
         
         status = self.db.test_connections()
-        self._is_live = status["oltp"] and status["dw"]
+        self._is_live = bool(status.get("oltp") and status.get("dw"))
+        self._connection_status = status
         return status
 
     # -------------------------------------------------------------------------

@@ -74,10 +74,18 @@ class DatabaseConnection:
                     pass
                 return default
 
-            self.user = user or _get_val("DB_USER", "root")
-            self.password = password or _get_val("DB_PASSWORD", "root@2003")
-            self.host = host or _get_val("DB_HOST", "127.0.0.1")
-            self.port = port or _get_val("DB_PORT", "3306")
+            # Auto-detect Streamlit Cloud environment or headless containers
+            is_cloud = os.path.exists("/mount/src") or "STREAMLIT" in os.environ.get("HOSTNAME", "")
+
+            default_user = "3W1Y2fU7xQME74Y.root" if is_cloud else "root"
+            default_pwd = "h9U454ewoOyWb4MH" if is_cloud else "root@2003"
+            default_host = "gateway01.ap-northeast-1.prod.aws.tidbcloud.com" if is_cloud else "127.0.0.1"
+            default_port = "4000" if is_cloud else "3306"
+
+            self.user = user or _get_val("DB_USER", default_user)
+            self.password = password or _get_val("DB_PASSWORD", default_pwd)
+            self.host = host or _get_val("DB_HOST", default_host)
+            self.port = port or _get_val("DB_PORT", default_port)
             self.oltp_db = oltp_db or _get_val("OLTP_DB_NAME", "enterprise_oltp")
             self.dw_db = dw_db or _get_val("DW_DB_NAME", "enterprise_dw")
 
