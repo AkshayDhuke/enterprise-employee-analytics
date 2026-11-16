@@ -82,7 +82,7 @@ def render_analytics_dashboard(provider: DataProvider):
             depts = ["All", "Sales", "Research & Development", "Human Resources", "Engineering & IT", "Finance & Operations"]
             selected_dept = st.selectbox("Select Department:", depts, key="dash_dense_dept")
         with c2:
-            top_n = st.slider("Top N Ranks:", min_value=1, max_value=10, value=5, key="dash_dense_n")
+            top_n = st.slider("Top N Ranks:", min_value=1, max_value=50, value=10, key="dash_dense_n")
 
         dept_arg = None if selected_dept == "All" else selected_dept
         df_rank = provider.get_top_performers(department_name=dept_arg, top_n=top_n)
@@ -106,7 +106,11 @@ def render_analytics_dashboard(provider: DataProvider):
         st.info("💡 **SQL Concept:** Uses `LAG(performance_rating, 1)` and `LAG(monthly_income, 1)` to calculate year-over-year rating deltas and salary bumps across consecutive review cycles.")
 
         # Employee selector for trajectory
-        all_emps = provider.get_all_employees(limit=25)
+        search_term = st.text_input("🔍 Search Employee by Name, Role, or ID:", key="dash_yoy_search", placeholder="e.g. Sarah Chen, Manager, EMP-00101")
+        if search_term and search_term.strip():
+            all_emps = provider.get_all_employees(limit=100, search_term=search_term.strip())
+        else:
+            all_emps = provider.get_all_employees(limit=100)
         emp_options = {
             e["employee_id"]: f"{e.get('full_name', 'Employee')} ({e.get('job_role', 'N/A')} - {e.get('department_name', 'General')})"
             for e in all_emps

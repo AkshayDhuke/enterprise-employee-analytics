@@ -222,45 +222,100 @@ class EmployeeManager(BaseManager):
         effective_date: Optional[date] = None,
     ) -> bool:
         """
-        Triggers an SCD Type 2 update in the Data Warehouse by invoking the stored procedure:
-        CALL enterprise_dw.sp_update_employee_scd2(...)
-        Expires previous version and inserts a new point-in-time version in Dim_Employee.
-        Synchronizes OLTP automatically.
+        Executes SCD Type 2 update using plain SQL (compatible with TiDB Serverless).
+        1. Expires current Dim_Employee version (is_current=0, effective_end_date=today)
+        2. Inserts new version with incremented version number
+        3. Updates OLTP employees table with new values
         """
         eff_date = effective_date or date.today()
 
-        call_proc_sql = """
-            CALL sp_update_employee_scd2(
-                :p_employee_id,
-                :p_new_department_id,
-                :p_new_job_role,
-                :p_new_job_level,
-                :p_new_salary,
-                :p_attrition,
-                :p_effective_date
-            );
-        """
-        params = {
-            "p_employee_id": employee_id,
-            "p_new_department_id": new_department_id,
-            "p_new_job_role": new_job_role,
-            "p_new_job_level": new_job_level,
-            "p_new_salary": new_salary,
-            "p_attrition": attrition,
-            "p_effective_date": str(eff_date),
-        }
+        # Resolve department name from OLTP
+        dept_name_result = self.execute_query(
+            "SELECT department_name FROM departments WHERE department_id = :dept_id;",
+            {"dept_id": new_department_id}
+        )
+        dept_name = dept_name_result[0]["department_name"] if dept_name_result else "General"
 
         try:
+            # --- Step 1: DW SCD2 update (expire old + insert new) ---
             with self.get_dw_connection() as conn:
-                conn.execute(text(call_proc_sql), params)
+                # Get current version info
+                current = conn.execute(text("""
+                    SELECT employee_sk, employee_number, full_name, gender, age,
+                           education_field, years_at_company, hire_date, version
+                    FROM Dim_Employee
+                    WHERE employee_id = :emp_id AND is_current = 1
+                    ORDER BY version DESC LIMIT 1;
+                """), {"emp_id": employee_id}).mappings().fetchone()
+
+                if not current:
+                    self.logger.warning("No current DW record found for emp #%s", employee_id)
+                    raise RuntimeError(f"No current Dim_Employee record for employee_id={employee_id}")
+
+                new_version = int(current["version"]) + 1
+
+                # Expire current version
+                conn.execute(text("""
+                    UPDATE Dim_Employee
+                    SET is_current = 0, effective_end_date = :eff_date
+                    WHERE employee_id = :emp_id AND is_current = 1;
+                """), {"emp_id": employee_id, "eff_date": str(eff_date)})
+
+                # Insert new version
+                conn.execute(text("""
+                    INSERT INTO Dim_Employee (
+                        employee_id, employee_number, full_name, gender, age,
+                        department_name, job_role, job_level, monthly_income,
+                        education_field, years_at_company, attrition, hire_date,
+                        effective_start_date, effective_end_date, is_current, version
+                    ) VALUES (
+                        :employee_id, :employee_number, :full_name, :gender, :age,
+                        :department_name, :job_role, :job_level, :monthly_income,
+                        :education_field, :years_at_company, :attrition, :hire_date,
+                        :effective_start_date, '9999-12-31', 1, :version
+                    );
+                """), {
+                    "employee_id": employee_id,
+                    "employee_number": current["employee_number"],
+                    "full_name": current["full_name"],
+                    "gender": current["gender"],
+                    "age": current["age"],
+                    "department_name": dept_name,
+                    "job_role": new_job_role,
+                    "job_level": new_job_level,
+                    "monthly_income": new_salary,
+                    "education_field": current["education_field"],
+                    "years_at_company": current["years_at_company"],
+                    "attrition": attrition,
+                    "hire_date": str(current["hire_date"]),
+                    "effective_start_date": str(eff_date),
+                    "version": new_version,
+                })
+
+            # --- Step 2: Update OLTP employees table ---
+            self.execute_statement("""
+                UPDATE employees
+                SET department_id = :dept_id, job_role = :job_role,
+                    job_level = :job_level, monthly_income = :salary,
+                    attrition = :attrition
+                WHERE employee_id = :emp_id;
+            """, {
+                "dept_id": new_department_id,
+                "job_role": new_job_role,
+                "job_level": new_job_level,
+                "salary": new_salary,
+                "attrition": attrition,
+                "emp_id": employee_id,
+            })
+
             self.logger.info(
-                "SCD Type 2 procedure executed for Emp #%s: Dept=%s, Role=%s, Salary=$%s",
-                employee_id, new_department_id, new_job_role, new_salary
+                "SCD Type 2 update executed for Emp #%s: Dept=%s, Role=%s, Level=%s, Salary=$%s (Version %s)",
+                employee_id, dept_name, new_job_role, new_job_level, new_salary, new_version
             )
             return True
         except SQLAlchemyError as err:
-            self.logger.error("Failed to execute SCD2 procedure for emp #%s: %s", employee_id, err)
-            raise RuntimeError(f"SCD Type 2 update procedure failed: {err}") from err
+            self.logger.error("Failed to execute SCD2 update for emp #%s: %s", employee_id, err)
+            raise RuntimeError(f"SCD Type 2 update failed: {err}") from err
 
     def delete_employee(self, employee_id: int, soft_delete: bool = True) -> bool:
         """
