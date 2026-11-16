@@ -36,6 +36,7 @@ class DataProvider:
 
         # Check connectivity
         self._is_live = False
+        self._connection_status = {}
         self._check_connectivity()
 
         # Initialize mock repository for offline demo mode
@@ -44,15 +45,21 @@ class DataProvider:
     def _check_connectivity(self):
         """Probes MySQL connectivity."""
         try:
-            status = self.db.test_connections()
-            self._is_live = status["oltp"] and status["dw"]
-        except Exception:
+            self._connection_status = self.db.test_connections()
+            self._is_live = bool(self._connection_status.get("oltp") and self._connection_status.get("dw"))
+        except Exception as e:
+            self._connection_status = {"oltp": False, "dw": False, "errors": {"exception": str(e)}}
             self._is_live = False
 
     @property
     def is_live(self) -> bool:
         """Returns True if connected to live MySQL OLTP and DW databases."""
         return self._is_live
+
+    @property
+    def connection_status(self) -> Dict[str, Any]:
+        """Returns the connection status and any diagnostics."""
+        return self._connection_status
 
     def reconnect(self, user: str, password: str, host: str = "127.0.0.1", port: str = "3306") -> Dict[str, Any]:
         """Disposes existing pool and attempts reconnection with provided credentials."""

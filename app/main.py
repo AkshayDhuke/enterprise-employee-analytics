@@ -61,9 +61,21 @@ def main():
 
         # Database Status Badge
         if provider.is_live:
-            st.success("🟢 **Live MySQL Connected**\n`enterprise_oltp` & `enterprise_dw` active")
+            st.success("🟢 **Live TiDB Connected**\n`enterprise_oltp` & `enterprise_dw` active")
         else:
-            st.info("ℹ️ **Interactive Demo Mode**\nRunning on synthesized warehouse dataset (100k+ records).")
+            st.warning("⚠️ **Running in Demo Mode**\nNot connected to live cloud database.")
+            with st.expander("🔍 Connection Status"):
+                st.write(f"**Target Host:** `{provider.db.host}`")
+                st.write(f"**Target User:** `{provider.db.user}`")
+                errs = provider.connection_status.get("errors", {})
+                if errs:
+                    for db_name, err_msg in errs.items():
+                        st.caption(f"**{db_name}:** {err_msg[:120]}...")
+                st.info("💡 Add database secrets in Streamlit Cloud Settings > Secrets.")
+            if st.button("🔄 Reconnect Database", key="btn_reconnect_db", use_container_width=True):
+                provider.db.close_all()
+                st.session_state.data_provider = DataProvider()
+                st.rerun()
 
         st.divider()
 

@@ -50,13 +50,26 @@ class DatabaseConnection:
                 return
 
             def _get_val(key: str, default: str) -> str:
-                val = os.getenv(key)
-                if val:
-                    return val
+                # 1. Check direct environment variables (case-insensitive)
+                for env_k in (key, key.lower(), key.upper()):
+                    val = os.getenv(env_k)
+                    if val:
+                        return val
+                # 2. Check Streamlit Cloud secrets (top-level and nested sections)
                 try:
                     import streamlit as st
-                    if hasattr(st, "secrets") and key in st.secrets:
-                        return str(st.secrets[key])
+                    if hasattr(st, "secrets"):
+                        # Top-level check (case-insensitive)
+                        for sec_k, sec_v in st.secrets.items():
+                            if sec_k.lower() == key.lower():
+                                return str(sec_v)
+                        # Nested sections check (e.g. [tidb], [mysql], [database], [connections])
+                        for sec_name in ["tidb", "mysql", "database", "connections", "tidbcloud"]:
+                            if sec_name in st.secrets and hasattr(st.secrets[sec_name], "items"):
+                                for sub_k, sub_v in st.secrets[sec_name].items():
+                                    short_k = key.lower().replace("db_", "")
+                                    if sub_k.lower() in (key.lower(), short_k):
+                                        return str(sub_v)
                 except Exception:
                     pass
                 return default
@@ -81,7 +94,8 @@ class DatabaseConnection:
 
             # SSL connect args for cloud databases (e.g. TiDB Cloud)
             self._connect_args = {}
-            if os.getenv("DB_SSL", "false").lower() in ("true", "1") or "tidbcloud.com" in self.host.lower():
+            ssl_val = _get_val("DB_SSL", "false")
+            if ssl_val.lower() in ("true", "1") or "tidbcloud.com" in self.host.lower():
                 self._connect_args["ssl"] = {}
 
             self._initialized = True
@@ -172,5 +186,5 @@ class DatabaseConnection:
             self._oltp_engine.dispose()
         if hasattr(self, "_dw_engine") and self._dw_engine:
             self._dw_engine.dispose()
-        DatabaseConnection._instance = None
+        DatabaseConnection._instances.clear()
         self._initialized = False
