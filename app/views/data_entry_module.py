@@ -88,7 +88,12 @@ def render_data_entry_module(provider: DataProvider):
             "`effective_end_date = NOW()`) and inserts a **new active version** (`is_current = 1`, `version = version + 1`)."
         )
 
-        all_emps = provider.get_all_employees(limit=50)
+        scd2_search = st.text_input("🔍 Search Employee by Name, Role, or ID:", key="scd2_search_input", placeholder="e.g. Sarah Chen, Manager, EMP-00101")
+        if scd2_search and scd2_search.strip():
+            all_emps = provider.get_all_employees(limit=100, search_term=scd2_search.strip())
+        else:
+            all_emps = provider.get_all_employees(limit=100)
+
         if all_emps:
             emp_map = {
                 e["employee_id"]: f"{e.get('full_name', 'Employee')} (ID: {e['employee_id']} | Dept: {e.get('department_name', 'General')} | Role: {e.get('job_role', 'N/A')})"
@@ -221,7 +226,12 @@ def render_data_entry_module(provider: DataProvider):
         st.subheader("Submit Performance Review (OLTP & DW Sync)")
         st.markdown("Submits an evaluation into `enterprise_oltp.performance_reviews` and synchronizes to `Fact_PerformanceReviews`.")
 
-        all_emps = provider.get_all_employees(limit=50)
+        rev_search = st.text_input("🔍 Search Employee by Name, Role, or ID:", key="rev_search_input", placeholder="e.g. Sarah Chen, Manager, EMP-00101")
+        if rev_search and rev_search.strip():
+            all_emps = provider.get_all_employees(limit=100, search_term=rev_search.strip())
+        else:
+            all_emps = provider.get_all_employees(limit=100)
+
         if all_emps:
             with st.form("submit_review_form", clear_on_submit=True):
                 r1, r2 = st.columns(2)

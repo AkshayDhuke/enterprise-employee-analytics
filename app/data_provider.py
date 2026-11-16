@@ -83,10 +83,15 @@ class DataProvider:
 
     def get_top_performers(self, department_name: Optional[str] = None, top_n: int = 5) -> pd.DataFrame:
         """Executes Query 1: Top-performing employees by department using DENSE_RANK()."""
+        cols = [
+            "dept_rank", "year_num", "department_name", "full_name",
+            "job_role", "performance_rating", "job_satisfaction", "monthly_income"
+        ]
         if self._is_live:
             try:
                 rows = self.analytics_dal.get_top_performers_by_department(department_name, top_n)
-                return pd.DataFrame(rows)
+                if rows is not None:
+                    return pd.DataFrame(rows) if rows else pd.DataFrame(columns=cols)
             except Exception:
                 pass
 
@@ -95,19 +100,21 @@ class DataProvider:
         if department_name and department_name != "All":
             df = df[df["department_name"] == department_name]
 
+        if df.empty:
+            return pd.DataFrame(columns=cols)
+
         # Emulate DENSE_RANK() OVER (PARTITION BY department_name, year_num ORDER BY rating DESC, satisfaction DESC, income DESC)
-        df["dept_rank"] = df.groupby(["department_name", "year_num"])[["performance_rating", "job_satisfaction", "monthly_income"]].apply(
-            lambda x: x.apply(tuple, axis=1).rank(method="dense", ascending=False)
-        ).astype(int).values
+        rank_values = pd.Series(dtype=int, index=df.index)
+        for _, group in df.groupby(["department_name", "year_num"]):
+            keys = group[["performance_rating", "job_satisfaction", "monthly_income"]].apply(tuple, axis=1)
+            rank_values[group.index] = keys.rank(method="dense", ascending=False).astype(int)
+        df["dept_rank"] = rank_values
 
         filtered = df[df["dept_rank"] <= top_n].sort_values(
             by=["department_name", "year_num", "dept_rank"],
             ascending=[True, False, True]
         )
-        return filtered[[
-            "dept_rank", "year_num", "department_name", "full_name",
-            "job_role", "performance_rating", "job_satisfaction", "monthly_income"
-        ]]
+        return filtered[cols]
 
     def get_yoy_trajectory(self, employee_id: Optional[int] = None) -> pd.DataFrame:
         """Executes Query 2: YoY Performance & Salary Trajectory using LAG()."""
@@ -485,6 +492,9 @@ class DataProvider:
 
             {"review_id": 11, "employee_id": 108, "full_name": "Michael Chang", "department_name": "Finance & Operations", "job_role": "Manager", "year_num": 2024, "performance_rating": 4.6, "job_satisfaction": 4, "monthly_income": 14800.0},
             {"review_id": 12, "employee_id": 108, "full_name": "Michael Chang", "department_name": "Finance & Operations", "job_role": "Manager", "year_num": 2023, "performance_rating": 4.5, "job_satisfaction": 4, "monthly_income": 13900.0},
+
+            {"review_id": 13, "employee_id": 105, "full_name": "Priya Sharma", "department_name": "Human Resources", "job_role": "Human Resources Specialist", "year_num": 2024, "performance_rating": 4.5, "job_satisfaction": 4, "monthly_income": 5400.0},
+            {"review_id": 14, "employee_id": 105, "full_name": "Priya Sharma", "department_name": "Human Resources", "job_role": "Human Resources Specialist", "year_num": 2023, "performance_rating": 4.2, "job_satisfaction": 3, "monthly_income": 4900.0},
         ]
         self._demo_reviews_df = pd.DataFrame(reviews_data)
 
