@@ -77,7 +77,10 @@ def render_project_mgmt_view(provider: DataProvider):
                         "end_date": str(end_dt),
                     }
                     try:
-                        proj_id = provider.create_project(proj_payload)
+                        proj_id = provider.create_project(
+                            proj_payload,
+                            actor_role=st.session_state.current_user["role"],
+                        )
                         st.success(f"🎉 Project #{proj_id} '{proj_name}' registered successfully and synchronized to Dim_Project!")
                     except Exception as ex:
                         st.error(f"Failed to create project: {ex}")

@@ -25,6 +25,7 @@ class TestPhase4DataProvider(unittest.TestCase):
 
     def setUp(self):
         self.provider = DataProvider()
+        self.provider._is_live = False
 
     def test_executive_kpis(self):
         """Verifies KPI extraction format and non-empty values."""
@@ -93,7 +94,7 @@ class TestPhase4DataProvider(unittest.TestCase):
             "monthly_income": 7000.0,
             "hire_date": str(date.today()),
         }
-        emp_id = self.provider.create_employee(new_emp)
+        emp_id = self.provider.create_employee(new_emp, actor_role="hr")
         self.assertIsNotNone(emp_id)
 
         # Trigger SCD2 Promotion
@@ -103,6 +104,7 @@ class TestPhase4DataProvider(unittest.TestCase):
             new_role="Senior Software Engineer",
             new_level=3,
             new_salary=8500.0,
+            actor_role="hr",
             effective_date=date.today(),
         )
         self.assertTrue(promoted)
@@ -115,7 +117,7 @@ class TestPhase4DataProvider(unittest.TestCase):
             "priority": "High",
             "status": "Active",
             "budget": 500000.0,
-        })
+        }, actor_role="hr")
         self.assertIsNotNone(proj_id)
 
         rev_id = self.provider.submit_review({
@@ -127,7 +129,7 @@ class TestPhase4DataProvider(unittest.TestCase):
             "work_life_balance": 3,
             "training_times_last_year": 4,
             "reviewer_comments": "Exceeded all engineering delivery goals.",
-        })
+        }, actor_role="hr")
         self.assertIsNotNone(rev_id)
 
 
@@ -136,6 +138,7 @@ class TestPhase4ChartFactory(unittest.TestCase):
 
     def setUp(self):
         self.provider = DataProvider()
+        self.provider._is_live = False
 
     def test_all_chart_renderers(self):
         """Ensures all chart generation functions return valid Plotly Figures."""

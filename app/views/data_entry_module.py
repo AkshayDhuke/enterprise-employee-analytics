@@ -14,7 +14,11 @@ from app.data_provider import DataProvider
 from app.config import DEFAULT_DEPARTMENTS, JOB_ROLES
 
 
-def render_data_entry_module(provider: DataProvider):
+def render_data_entry_module(provider: DataProvider, actor_role: str):
+    if actor_role != "hr":
+        st.error("Only HR users can add or update organization records.")
+        return
+
     st.title("📝 Data Entry & SCD Type 2 Management")
     st.caption("OLTP Transactional Operations & Automated SCD Type 2 Data Warehouse Synchronization")
 
@@ -74,7 +78,7 @@ def render_data_entry_module(provider: DataProvider):
                         "attrition": "No",
                         "hire_date": str(hire_date),
                     }
-                    new_id = provider.create_employee(payload)
+                    new_id = provider.create_employee(payload, actor_role=actor_role)
                     st.success(f"🎉 Employee **{first_name} {last_name}** successfully onboarded! (Employee ID: `{new_id}`)")
 
     # -------------------------------------------------------------------------
@@ -138,11 +142,12 @@ def render_data_entry_module(provider: DataProvider):
                     if update_btn:
                         success = provider.update_employee_scd2(
                             employee_id=selected_emp_id,
-                            new_department_id=new_dept_id,
+                            new_dept_id=new_dept_id,
                             new_role=new_role,
                             new_salary=float(new_salary),
                             new_level=new_level,
-                            promotion_date=str(date.today()),
+                            actor_role=actor_role,
+                            effective_date=date.today(),
                         )
                         if success:
                             st.success(f"✨ Successfully triggered SCD Type 2 update! Department set to **{new_dept_name}** at **${new_salary:,.2f}/mo**.")
@@ -195,7 +200,7 @@ def render_data_entry_module(provider: DataProvider):
                         "start_date": str(start_date),
                         "end_date": str(end_date),
                     }
-                    new_proj_id = provider.create_project(payload)
+                    new_proj_id = provider.create_project(payload, actor_role=actor_role)
                     st.success(f"🎉 Project **{proj_name}** (`{proj_code}`) created successfully! (Project ID: `{new_proj_id}`)")
 
     # -------------------------------------------------------------------------
@@ -239,7 +244,7 @@ def render_data_entry_module(provider: DataProvider):
                         "training_times_last_year": int(training_times),
                         "reviewer_comments": reviewer_notes.strip(),
                     }
-                    new_rev_id = provider.submit_review(payload)
+                    new_rev_id = provider.submit_review(payload, actor_role=actor_role)
                     st.success(f"🎉 Performance Review successfully recorded for Employee #{rev_emp_id}! (Review ID: `{new_rev_id}`)")
         else:
             st.warning("No employees found to review.")

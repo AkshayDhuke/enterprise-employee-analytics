@@ -17,6 +17,7 @@ from src.dal.review_manager import ReviewManager
 from src.entities.employee import Employee
 from src.entities.project import Project
 from src.entities.review import Review
+from app.auth import require_hr
 
 
 class DataProvider:
@@ -235,14 +236,12 @@ class DataProvider:
             ]
         return emps[offset: offset + limit]
 
-    def create_employee(self, emp_data: Dict[str, Any]) -> int:
+    def create_employee(self, emp_data: Dict[str, Any], actor_role: str) -> int:
         """Creates a new employee record and syncs to warehouse."""
+        require_hr(actor_role)
         if self._is_live:
-            try:
-                emp = Employee.from_dict(emp_data)
-                return self.employee_dal.create_employee(emp)
-            except Exception:
-                pass
+            emp = Employee.from_dict(emp_data)
+            return self.employee_dal.create_employee(emp)
 
         # Demo mode insert
         new_id = len(self._demo_employees) + 101
@@ -259,17 +258,16 @@ class DataProvider:
         new_role: str,
         new_level: int,
         new_salary: float,
+        actor_role: str,
         effective_date: Optional[date] = None,
-        attrition: str = "No"
+        attrition: str = "No",
     ) -> bool:
         """Executes SCD Type 2 progression update in DW and updates OLTP profile."""
+        require_hr(actor_role)
         if self._is_live:
-            try:
-                return self.employee_dal.update_employee_scd2(
-                    employee_id, new_dept_id, new_role, new_level, new_salary, attrition, effective_date
-                )
-            except Exception:
-                pass
+            return self.employee_dal.update_employee_scd2(
+                employee_id, new_dept_id, new_role, new_level, new_salary, attrition, effective_date
+            )
 
         # Emulate SCD2 update in demo dataset
         dept_names = {1: "Research & Development", 2: "Sales", 3: "Human Resources", 4: "Engineering & IT", 5: "Finance & Operations"}
@@ -316,13 +314,11 @@ class DataProvider:
         self._demo_scd2_df = pd.concat([self._demo_scd2_df, pd.DataFrame([new_scd_record])], ignore_index=True)
         return True
 
-    def terminate_employee(self, employee_id: int) -> bool:
+    def terminate_employee(self, employee_id: int, actor_role: str) -> bool:
         """Soft-deletes employee by setting attrition='Yes'."""
+        require_hr(actor_role)
         if self._is_live:
-            try:
-                return self.employee_dal.delete_employee(employee_id, soft_delete=True)
-            except Exception:
-                pass
+            return self.employee_dal.delete_employee(employee_id, soft_delete=True)
 
         for emp in self._demo_employees:
             if emp["employee_id"] == employee_id:
@@ -340,14 +336,12 @@ class DataProvider:
                 pass
         return self._demo_projects
 
-    def create_project(self, project_data: Dict[str, Any]) -> int:
+    def create_project(self, project_data: Dict[str, Any], actor_role: str) -> int:
         """Registers a new project."""
+        require_hr(actor_role)
         if self._is_live:
-            try:
-                proj = Project.from_dict(project_data)
-                return self.project_dal.create_project(proj)
-            except Exception:
-                pass
+            proj = Project.from_dict(project_data)
+            return self.project_dal.create_project(proj)
 
         new_id = len(self._demo_projects) + 1
         project_data["project_id"] = new_id
@@ -356,14 +350,12 @@ class DataProvider:
         self._demo_projects.insert(0, project_data)
         return new_id
 
-    def submit_review(self, review_data: Dict[str, Any]) -> int:
+    def submit_review(self, review_data: Dict[str, Any], actor_role: str) -> int:
         """Submits performance review and synchronizes to warehouse fact."""
+        require_hr(actor_role)
         if self._is_live:
-            try:
-                rev = Review.from_dict(review_data)
-                return self.review_dal.create_review(rev)
-            except Exception:
-                pass
+            rev = Review.from_dict(review_data)
+            return self.review_dal.create_review(rev)
 
         new_id = len(self._demo_reviews_df) + 1
         emp_match = [e for e in self._demo_employees if e["employee_id"] == review_data["employee_id"]]

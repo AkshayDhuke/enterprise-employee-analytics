@@ -5,11 +5,13 @@ Provides environment-aware settings and branding definitions for Streamlit UI.
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Paths
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT_DIR / "data"
 SQL_DIR = ROOT_DIR / "sql"
+load_dotenv(ROOT_DIR / ".env")
 
 # Application Metadata
 APP_TITLE = "Enterprise HR Analytics & Warehouse System"

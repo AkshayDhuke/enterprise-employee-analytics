@@ -6,6 +6,16 @@
 CREATE DATABASE IF NOT EXISTS enterprise_oltp;
 USE enterprise_oltp;
 
+-- Application accounts: signup defaults to viewer; HR is assigned only with the configured signup code.
+CREATE TABLE IF NOT EXISTS app_users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(150) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('hr', 'viewer') NOT NULL DEFAULT 'viewer',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 -- 1. Departments Table
 CREATE TABLE IF NOT EXISTS departments (
     department_id INT AUTO_INCREMENT PRIMARY KEY,

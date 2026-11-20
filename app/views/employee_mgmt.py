@@ -100,7 +100,7 @@ def render_employee_mgmt_view(provider: DataProvider):
                         "hire_date": str(hire_date),
                     }
                     try:
-                        new_id = provider.create_employee(new_emp_payload)
+                        new_id = provider.create_employee(new_emp_payload, actor_role=st.session_state.current_user["role"])
                         st.success(f"🎉 Successfully created Employee #{new_id} ({first_name} {last_name})! Synchronized baseline Version 1 into Dim_Employee.")
                     except Exception as ex:
                         st.error(f"Failed to create employee: {ex}")
@@ -160,6 +160,7 @@ def render_employee_mgmt_view(provider: DataProvider):
                             new_salary=float(new_salary),
                             effective_date=eff_date,
                             attrition="No",
+                            actor_role=st.session_state.current_user["role"],
                         )
                         if success:
                             st.success(
@@ -188,7 +189,10 @@ def render_employee_mgmt_view(provider: DataProvider):
 
             confirm = st.checkbox("⚠️ I confirm this separation record.")
             if st.button("Mark as Attrited", type="primary", disabled=not confirm):
-                success = provider.terminate_employee(term_emp_id)
+                success = provider.terminate_employee(
+                    term_emp_id,
+                    actor_role=st.session_state.current_user["role"],
+                )
                 if success:
                     st.warning(f"Employee #{term_emp_id} has been marked as Attrited.")
         else:

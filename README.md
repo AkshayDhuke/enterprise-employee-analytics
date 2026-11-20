@@ -135,6 +135,7 @@ flowchart TD
 
 ### 1. OLTP Relational Model (3NF)
 Normalized database optimizing transactional consistency and operational read/writes:
+- **`app_users`**: `(user_id [PK], full_name, email [UK], password_hash, role)` for application login and role-based access.
 - **`departments`**: `(department_id [PK], department_name [UK], cost_center_code, location)`
 - **`employees`**: `(employee_id [PK], employee_number [UK], first_name, last_name, email [UK], gender, age, department_id [FK], job_role, job_level, monthly_income, attrition, hire_date)`
 - **`projects`**: `(project_id [PK], project_code [UK], project_name, department_id [FK], priority, status, start_date, budget)`
@@ -228,7 +229,9 @@ DB_USER=root
 DB_PASSWORD=your_mysql_password
 DB_HOST=127.0.0.1
 DB_PORT=3306
+HR_SIGNUP_CODE=choose-a-long-random-invitation-code
 ```
+The app stores accounts in `enterprise_oltp.app_users`. New registrations are read-only by default; only users who supply the configured `HR_SIGNUP_CODE` receive HR access. Keep the code private and configure it before creating HR accounts.
 
 ### 4. Initialize Database Schemas & Data Pipeline
 Run the numbered SQL scripts or use the automated ETL pipeline:
@@ -253,6 +256,8 @@ streamlit run app/main.py
 ```
 
 The web interface will open in your browser at `http://localhost:8501`.
+
+Users can create read-only accounts from the signup tab. HR users sign up with the invitation code configured in `HR_SIGNUP_CODE`; only HR accounts can access the data-entry module or invoke write operations.
 
 ### Navigation Modules
 1. **Executive KPI Dashboard**: High-level organization health, headcount, and compensation metrics.
@@ -318,6 +323,7 @@ enterprise-employee-warehouse/
 ├── db_manager.py                     # Root compatibility singleton export
 │
 ├── app/                              # Phase 4: Streamlit Web Application
+│   ├── auth.py                       # Password hashing, account storage, and HR role checks
 │   ├── config.py                     # App settings and branding
 │   ├── data_provider.py              # Data Access facade for Streamlit views
 │   ├── main.py                       # Main application entry point
@@ -325,6 +331,8 @@ enterprise-employee-warehouse/
 │   │   ├── charts.py                 # Plotly interactive chart builders
 │   │   └── ui_helpers.py             # Custom styled metric cards and banners
 │   └── views/
+│       ├── authentication.py         # Login and signup screen
+│       ├── read_only_data.py         # Employee and project browser
 │       ├── analytics_hub.py          # Window functions and CTE analytical dashboards
 │       ├── database_admin.py         # Schema inspection and ETL management
 │       ├── employee_mgmt.py          # Employee onboarding and SCD Type 2 updater

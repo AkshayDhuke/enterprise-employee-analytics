@@ -64,7 +64,10 @@ def render_review_mgmt_view(provider: DataProvider):
                         "reviewer_comments": comments.strip(),
                     }
                     try:
-                        rev_id = provider.submit_review(rev_payload)
+                        rev_id = provider.submit_review(
+                            rev_payload,
+                            actor_role=st.session_state.current_user["role"],
+                        )
                         st.success(
                             f"🎉 Review #{rev_id} for {emp_options[e_id]} successfully logged! "
                             f"Point-in-time snapshot committed to Fact_PerformanceReviews in enterprise_dw."
