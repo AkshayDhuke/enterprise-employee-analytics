@@ -6,6 +6,7 @@ Encapsulates employee state, validation rules, and business behaviors.
 from datetime import date, datetime
 from typing import Optional, Dict, Any
 from decimal import Decimal
+import re
 
 
 class Employee:
@@ -18,6 +19,7 @@ class Employee:
     VALID_ATTRITION = {"Yes", "No"}
     MIN_JOB_LEVEL = 1
     MAX_JOB_LEVEL = 5
+    NAME_REGEX = re.compile(r"^[a-zA-ZÀ-ÿ\s\'-.]+$")
 
     def __init__(
         self,
@@ -83,10 +85,38 @@ class Employee:
         """Calculates total annual gross salary."""
         return float(self._monthly_income * 12)
 
+    @classmethod
+    def is_valid_name(cls, name: str) -> bool:
+        """Validates that a name contains only letters, spaces, hyphens, or apostrophes (no numbers)."""
+        if not name or not isinstance(name, str):
+            return False
+        cleaned = name.strip()
+        if len(cleaned) < 2 or len(cleaned) > 50:
+            return False
+        if any(c.isdigit() for c in cleaned):
+            return False
+        if not cls.NAME_REGEX.match(cleaned):
+            return False
+        if sum(1 for c in cleaned if c.isalpha()) < 2:
+            return False
+        return True
+
     def validate(self) -> bool:
         """Validates all business constraints for an Employee instance."""
         if not self.first_name or not self.last_name:
             raise ValueError("Employee must have both a first name and a last name.")
+
+        if not self.is_valid_name(self.first_name):
+            raise ValueError(
+                f"Invalid first name '{self.first_name}'. Names must be at least 2 characters long, "
+                "contain only letters, spaces, hyphens, or apostrophes, and cannot contain numbers."
+            )
+
+        if not self.is_valid_name(self.last_name):
+            raise ValueError(
+                f"Invalid last name '{self.last_name}'. Names must be at least 2 characters long, "
+                "contain only letters, spaces, hyphens, or apostrophes, and cannot contain numbers."
+            )
 
         if not self.email or "@" not in self.email:
             raise ValueError(f"Invalid email address provided: {self.email}")

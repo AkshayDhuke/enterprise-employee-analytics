@@ -12,6 +12,7 @@ import streamlit as st
 import pandas as pd
 from app.data_provider import DataProvider
 from app.config import DEFAULT_DEPARTMENTS, JOB_ROLES
+from src.entities.employee import Employee
 
 
 def render_data_entry_module(provider: DataProvider, actor_role: str):
@@ -60,13 +61,23 @@ def render_data_entry_module(provider: DataProvider, actor_role: str):
             submitted = st.form_submit_button("✅ Onboard Employee", use_container_width=True)
 
             if submitted:
-                if not first_name or not last_name or not email:
+                fn_clean = first_name.strip()
+                ln_clean = last_name.strip()
+                em_clean = email.strip()
+
+                if not fn_clean or not ln_clean or not em_clean:
                     st.error("Please fill in all required fields (First Name, Last Name, Email).")
+                elif not Employee.is_valid_name(fn_clean):
+                    st.error(f"❌ Invalid First Name '{fn_clean}': Names must be at least 2 characters, contain only letters, and cannot contain numbers.")
+                elif not Employee.is_valid_name(ln_clean):
+                    st.error(f"❌ Invalid Last Name '{ln_clean}': Names must be at least 2 characters, contain only letters, and cannot contain numbers.")
+                elif "@" not in em_clean or "." not in em_clean.split("@")[-1]:
+                    st.error(f"❌ Invalid Email Address '{em_clean}': Please provide a valid email (e.g. john.doe@enterprise.com).")
                 else:
                     payload = {
-                        "first_name": first_name.strip(),
-                        "last_name": last_name.strip(),
-                        "email": email.strip(),
+                        "first_name": fn_clean,
+                        "last_name": ln_clean,
+                        "email": em_clean,
                         "gender": gender,
                         "age": int(age),
                         "department_id": dept_id,
@@ -78,8 +89,11 @@ def render_data_entry_module(provider: DataProvider, actor_role: str):
                         "attrition": "No",
                         "hire_date": str(hire_date),
                     }
-                    new_id = provider.create_employee(payload, actor_role=actor_role)
-                    st.success(f"🎉 Employee **{first_name} {last_name}** successfully onboarded! (Employee ID: `{new_id}`)")
+                    try:
+                        new_id = provider.create_employee(payload, actor_role=actor_role)
+                        st.success(f"🎉 Employee **{fn_clean} {ln_clean}** successfully onboarded! (Employee ID: `{new_id}`)")
+                    except Exception as ex:
+                        st.error(f"Failed to onboard employee: {ex}")
 
     # -------------------------------------------------------------------------
     # TAB 2: Update Employee Department (Triggers SCD Type 2)

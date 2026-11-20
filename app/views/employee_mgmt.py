@@ -10,6 +10,7 @@ import pandas as pd
 from app.data_provider import DataProvider
 from app.config import DEFAULT_DEPARTMENTS, JOB_ROLES, EDUCATION_FIELDS
 from app.utils.ui_helpers import render_section_header
+from src.entities.employee import Employee
 
 
 def render_employee_mgmt_view(provider: DataProvider):
@@ -77,16 +78,24 @@ def render_employee_mgmt_view(provider: DataProvider):
             submitted = st.form_submit_button("💼 Register New Employee", use_container_width=True)
 
             if submitted:
-                if not first_name.strip() or not last_name.strip() or not email.strip():
+                fn_clean = first_name.strip()
+                ln_clean = last_name.strip()
+                em_clean = email.strip()
+
+                if not fn_clean or not ln_clean or not em_clean:
                     st.error("Please fill in all required fields (First Name, Last Name, Email).")
-                elif "@" not in email:
+                elif not Employee.is_valid_name(fn_clean):
+                    st.error(f"❌ Invalid First Name '{fn_clean}': Names must be at least 2 characters, contain only letters, and cannot contain numbers.")
+                elif not Employee.is_valid_name(ln_clean):
+                    st.error(f"❌ Invalid Last Name '{ln_clean}': Names must be at least 2 characters, contain only letters, and cannot contain numbers.")
+                elif "@" not in em_clean or "." not in em_clean.split("@")[-1]:
                     st.error("Invalid email format.")
                 else:
                     dept_id_sel = dept_id_map.get(dept_name, 1)
                     new_emp_payload = {
-                        "first_name": first_name.strip(),
-                        "last_name": last_name.strip(),
-                        "email": email.strip(),
+                        "first_name": fn_clean,
+                        "last_name": ln_clean,
+                        "email": em_clean,
                         "gender": gender,
                         "age": int(age),
                         "department_id": dept_id_sel,

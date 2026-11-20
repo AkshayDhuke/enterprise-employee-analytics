@@ -84,6 +84,23 @@ class TestEntityEncapsulation(unittest.TestCase):
         with self.assertRaises(ValueError):
             Employee("Bad", "User", "invalid-email", 1, "Role", 5000.0)
 
+        # Test name validation (rejects numbers, empty, single letters)
+        with self.assertRaises(ValueError):
+            Employee("123", "Doe", "test@enterprise.com", 1, "Role", 5000.0)
+
+        with self.assertRaises(ValueError):
+            Employee("Jane", "456", "test@enterprise.com", 1, "Role", 5000.0)
+
+        with self.assertRaises(ValueError):
+            Employee("John123", "Doe", "test@enterprise.com", 1, "Role", 5000.0)
+
+        with self.assertRaises(ValueError):
+            Employee("J", "Doe", "test@enterprise.com", 1, "Role", 5000.0)
+
+        # Test valid names with hyphens and apostrophes
+        valid_emp = Employee("Mary-Jane", "O'Connor", "valid@enterprise.com", 1, "Role", 5000.0)
+        self.assertEqual(valid_emp.full_name, "Mary-Jane O'Connor")
+
         # Test dictionary serialization and deserialization
         data = emp.to_dict()
         self.assertEqual(data["full_name"], "Jane Doe")
