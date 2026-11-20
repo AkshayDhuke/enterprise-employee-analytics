@@ -92,9 +92,17 @@ def render_data_entry_module(provider: DataProvider, actor_role: str):
             "`effective_end_date = NOW()`) and inserts a **new active version** (`is_current = 1`, `version = version + 1`)."
         )
 
-        all_emps = provider.get_all_employees(limit=50)
+        scd2_search = st.text_input("🔍 Search Employee by Name, Role, or ID:", key="scd2_search_input", placeholder="e.g. Sarah Chen, Manager, EMP-00101")
+        if scd2_search and scd2_search.strip():
+            all_emps = provider.get_all_employees(limit=100, search_term=scd2_search.strip())
+        else:
+            all_emps = provider.get_all_employees(limit=100)
+
         if all_emps:
-            emp_map = {e["employee_id"]: f"{e['full_name']} (ID: {e['employee_id']} | Dept: {e['department_name']} | Role: {e['job_role']})" for e in all_emps}
+            emp_map = {
+                e["employee_id"]: f"{e.get('full_name', 'Employee')} (ID: {e['employee_id']} | Dept: {e.get('department_name', 'General')} | Role: {e.get('job_role', 'N/A')})"
+                for e in all_emps
+            }
             selected_emp_id = st.selectbox(
                 "Select Employee to Update / Promote:",
                 options=list(emp_map.keys()),
@@ -108,10 +116,15 @@ def render_data_entry_module(provider: DataProvider, actor_role: str):
             if current_emp:
                 st.markdown("##### Current Employee State in Database:")
                 c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Current Department", current_emp["department_name"])
-                c2.metric("Current Role", current_emp["job_role"])
-                c3.metric("Current Job Level", f"Level {current_emp['job_level']}")
-                c4.metric("Current Monthly Income", f"${current_emp['monthly_income']:,.2f}")
+                curr_dept = current_emp.get("department_name", "General")
+                curr_role = current_emp.get("job_role", "Software Engineer")
+                curr_level = current_emp.get("job_level", 1)
+                curr_income = float(current_emp.get("monthly_income", 0.0))
+
+                c1.metric("Current Department", curr_dept)
+                c2.metric("Current Role", curr_role)
+                c3.metric("Current Job Level", f"Level {curr_level}")
+                c4.metric("Current Monthly Income", f"${curr_income:,.2f}")
 
                 st.divider()
 
@@ -121,19 +134,27 @@ def render_data_entry_module(provider: DataProvider, actor_role: str):
 
                     with f_col1:
                         dept_names = [d["department_name"] for d in DEFAULT_DEPARTMENTS]
-                        new_dept_name = st.selectbox("New Department *", dept_names, index=dept_names.index(current_emp["department_name"]) if current_emp["department_name"] in dept_names else 0)
+                        new_dept_name = st.selectbox(
+                            "New Department *",
+                            dept_names,
+                            index=dept_names.index(curr_dept) if curr_dept in dept_names else 0
+                        )
                         dept_id_map = {d["department_name"]: d["department_id"] for d in DEFAULT_DEPARTMENTS}
                         new_dept_id = dept_id_map[new_dept_name]
 
-                        new_role = st.selectbox("New Job Role *", JOB_ROLES, index=JOB_ROLES.index(current_emp["job_role"]) if current_emp["job_role"] in JOB_ROLES else 0)
+                        new_role = st.selectbox(
+                            "New Job Role *",
+                            JOB_ROLES,
+                            index=JOB_ROLES.index(curr_role) if curr_role in JOB_ROLES else 0
+                        )
 
                     with f_col2:
-                        new_level = st.slider("New Job Level (1 to 5)", min_value=1, max_value=5, value=min(current_emp["job_level"] + 1, 5))
+                        new_level = st.slider("New Job Level (1 to 5)", min_value=1, max_value=5, value=min(curr_level + 1, 5))
                         new_salary = st.number_input(
                             "New Monthly Income ($) *",
                             min_value=1000.0,
                             max_value=60000.0,
-                            value=float(current_emp["monthly_income"]) * 1.15,
+                            value=float(curr_income) * 1.15 if curr_income > 0 else 5000.0,
                             step=500.0,
                         )
 
@@ -210,7 +231,12 @@ def render_data_entry_module(provider: DataProvider, actor_role: str):
         st.subheader("Submit Performance Review (OLTP & DW Sync)")
         st.markdown("Submits an evaluation into `enterprise_oltp.performance_reviews` and synchronizes to `Fact_PerformanceReviews`.")
 
-        all_emps = provider.get_all_employees(limit=50)
+        rev_search = st.text_input("🔍 Search Employee by Name, Role, or ID:", key="rev_search_input", placeholder="e.g. Sarah Chen, Manager, EMP-00101")
+        if rev_search and rev_search.strip():
+            all_emps = provider.get_all_employees(limit=100, search_term=rev_search.strip())
+        else:
+            all_emps = provider.get_all_employees(limit=100)
+
         if all_emps:
             with st.form("submit_review_form", clear_on_submit=True):
                 r1, r2 = st.columns(2)

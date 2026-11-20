@@ -7,6 +7,8 @@ import os
 import secrets
 from typing import Any, Dict, Optional
 
+import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 from sqlalchemy import text
 
 from src.db_manager import DatabaseConnection
@@ -91,6 +93,11 @@ class AuthenticationManager:
         full_name = full_name.strip()
         email = email.strip().lower()
         configured_code = os.getenv("HR_SIGNUP_CODE", "")
+        if not configured_code:
+            try:
+                configured_code = str(st.secrets["HR_SIGNUP_CODE"])
+            except (KeyError, StreamlitSecretNotFoundError):
+                configured_code = ""
 
         if (
             not full_name

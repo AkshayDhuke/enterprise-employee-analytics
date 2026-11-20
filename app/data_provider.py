@@ -5,7 +5,7 @@ and high-fidelity demonstration datasets when the database is offline or uniniti
 """
 
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import List, Dict, Any, Optional
 import pandas as pd
 
@@ -18,6 +18,7 @@ from src.entities.employee import Employee
 from src.entities.project import Project
 from src.entities.review import Review
 from app.auth import require_hr
+from app.config import DEFAULT_DEPARTMENTS
 
 
 class DataProvider:
@@ -36,23 +37,45 @@ class DataProvider:
 
         # Check connectivity
         self._is_live = False
+        self._connection_status = {}
         self._check_connectivity()
 
         # Initialize mock repository for offline demo mode
         self._init_demo_dataset()
 
     def _check_connectivity(self):
-        """Probes MySQL connectivity."""
+        """Probes MySQL connectivity, with automatic cloud fallback."""
         try:
-            status = self.db.test_connections()
-            self._is_live = status["oltp"] and status["dw"]
-        except Exception:
+            self._connection_status = self.db.test_connections()
+            self._is_live = bool(self._connection_status.get("oltp") and self._connection_status.get("dw"))
+        except Exception as e:
+            self._connection_status = {"oltp": False, "dw": False, "errors": {"exception": str(e)}}
             self._is_live = False
+
+        # If local host failed, automatically try TiDB Cloud fallback
+        if not self._is_live and self.db.host in ("127.0.0.1", "localhost"):
+            try:
+                cloud_status = self.reconnect(
+                    user="3W1Y2fU7xQME74Y.root",
+                    password="h9U454ewoOyWb4MH",
+                    host="gateway01.ap-northeast-1.prod.aws.tidbcloud.com",
+                    port="4000"
+                )
+                if cloud_status.get("oltp") and cloud_status.get("dw"):
+                    self._is_live = True
+                    self._connection_status = cloud_status
+            except Exception:
+                pass
 
     @property
     def is_live(self) -> bool:
         """Returns True if connected to live MySQL OLTP and DW databases."""
         return self._is_live
+
+    @property
+    def connection_status(self) -> Dict[str, Any]:
+        """Returns the connection status and any diagnostics."""
+        return self._connection_status
 
     def reconnect(self, user: str, password: str, host: str = "127.0.0.1", port: str = "3306") -> Dict[str, Any]:
         """Disposes existing pool and attempts reconnection with provided credentials."""
@@ -65,7 +88,8 @@ class DataProvider:
         self.review_dal = ReviewManager()
         
         status = self.db.test_connections()
-        self._is_live = status["oltp"] and status["dw"]
+        self._is_live = bool(status.get("oltp") and status.get("dw"))
+        self._connection_status = status
         return status
 
     # -------------------------------------------------------------------------
@@ -83,10 +107,15 @@ class DataProvider:
 
     def get_top_performers(self, department_name: Optional[str] = None, top_n: int = 5) -> pd.DataFrame:
         """Executes Query 1: Top-performing employees by department using DENSE_RANK()."""
+        cols = [
+            "dept_rank", "year_num", "department_name", "full_name",
+            "job_role", "performance_rating", "job_satisfaction", "monthly_income"
+        ]
         if self._is_live:
             try:
                 rows = self.analytics_dal.get_top_performers_by_department(department_name, top_n)
-                return pd.DataFrame(rows)
+                if rows is not None:
+                    return pd.DataFrame(rows) if rows else pd.DataFrame(columns=cols)
             except Exception:
                 pass
 
@@ -95,19 +124,21 @@ class DataProvider:
         if department_name and department_name != "All":
             df = df[df["department_name"] == department_name]
 
+        if df.empty:
+            return pd.DataFrame(columns=cols)
+
         # Emulate DENSE_RANK() OVER (PARTITION BY department_name, year_num ORDER BY rating DESC, satisfaction DESC, income DESC)
-        df["dept_rank"] = df.groupby(["department_name", "year_num"])[["performance_rating", "job_satisfaction", "monthly_income"]].apply(
-            lambda x: x.apply(tuple, axis=1).rank(method="dense", ascending=False)
-        ).astype(int).values
+        rank_values = pd.Series(dtype=int, index=df.index)
+        for _, group in df.groupby(["department_name", "year_num"]):
+            keys = group[["performance_rating", "job_satisfaction", "monthly_income"]].apply(tuple, axis=1)
+            rank_values[group.index] = keys.rank(method="dense", ascending=False).astype(int)
+        df["dept_rank"] = rank_values
 
         filtered = df[df["dept_rank"] <= top_n].sort_values(
             by=["department_name", "year_num", "dept_rank"],
             ascending=[True, False, True]
         )
-        return filtered[[
-            "dept_rank", "year_num", "department_name", "full_name",
-            "job_role", "performance_rating", "job_satisfaction", "monthly_income"
-        ]]
+        return filtered[cols]
 
     def get_yoy_trajectory(self, employee_id: Optional[int] = None) -> pd.DataFrame:
         """Executes Query 2: YoY Performance & Salary Trajectory using LAG()."""
@@ -211,13 +242,20 @@ class DataProvider:
         search_term: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Retrieves active employee list for management view."""
+        dept_map = {d["department_id"]: d["department_name"] for d in DEFAULT_DEPARTMENTS}
         if self._is_live:
             try:
                 if search_term:
                     emps = self.employee_dal.search_employees(search_term, limit=limit)
                 else:
                     emps = self.employee_dal.get_all_employees(limit=limit, offset=offset, department_id=department_id)
-                return [e.to_dict() for e in emps]
+                res = []
+                for e in emps:
+                    d = e.to_dict()
+                    if not d.get("department_name"):
+                        d["department_name"] = dept_map.get(d.get("department_id"), "General")
+                    res.append(d)
+                return res
             except Exception:
                 pass
 
@@ -234,7 +272,11 @@ class DataProvider:
                 or term in e.get("job_role", "").lower()
                 or term in e.get("employee_number", "").lower()
             ]
-        return emps[offset: offset + limit]
+        sliced = emps[offset: offset + limit]
+        for e in sliced:
+            if not e.get("department_name"):
+                e["department_name"] = dept_map.get(e.get("department_id"), "General")
+        return sliced
 
     def create_employee(self, emp_data: Dict[str, Any], actor_role: str) -> int:
         """Creates a new employee record and syncs to warehouse."""
@@ -248,29 +290,57 @@ class DataProvider:
         emp_data["employee_id"] = new_id
         emp_data["employee_number"] = f"EMP-{new_id:05d}"
         emp_data["full_name"] = f"{emp_data.get('first_name', '')} {emp_data.get('last_name', '')}".strip()
+        dept_map = {d["department_id"]: d["department_name"] for d in DEFAULT_DEPARTMENTS}
+        if not emp_data.get("department_name"):
+            emp_data["department_name"] = dept_map.get(emp_data.get("department_id"), "General")
         self._demo_employees.insert(0, emp_data)
         return new_id
 
     def update_employee_scd2(
         self,
         employee_id: int,
-        new_dept_id: int,
-        new_role: str,
-        new_level: int,
-        new_salary: float,
-        actor_role: str,
-        effective_date: Optional[date] = None,
+        new_dept_id: Optional[int] = None,
+        new_role: Optional[str] = None,
+        new_level: Optional[int] = None,
+        new_salary: Optional[float] = None,
+        effective_date: Optional[Any] = None,
         attrition: str = "No",
+        *,
+        actor_role: str,
+        **kwargs
     ) -> bool:
         """Executes SCD Type 2 progression update in DW and updates OLTP profile."""
         require_hr(actor_role)
+        if new_dept_id is None:
+            new_dept_id = kwargs.pop("new_department_id", None)
+        if new_role is None:
+            new_role = kwargs.pop("new_job_role", None)
+        if new_level is None:
+            new_level = kwargs.pop("new_job_level", None)
+        if new_salary is None:
+            new_salary = kwargs.pop("new_salary", None)
+        if effective_date is None:
+            effective_date = kwargs.pop("promotion_date", date.today())
+        if kwargs:
+            raise TypeError(f"Unexpected update arguments: {', '.join(kwargs)}")
+        if None in (new_dept_id, new_role, new_level, new_salary):
+            raise ValueError("Department, role, job level, and salary are required for an SCD2 update.")
+        if isinstance(effective_date, str):
+            effective_date = datetime.strptime(effective_date, "%Y-%m-%d").date()
+
         if self._is_live:
             return self.employee_dal.update_employee_scd2(
-                employee_id, new_dept_id, new_role, new_level, new_salary, attrition, effective_date
+                employee_id=employee_id,
+                new_department_id=new_dept_id,
+                new_job_role=new_role,
+                new_job_level=new_level,
+                new_salary=new_salary,
+                attrition=attrition,
+                effective_date=effective_date,
             )
 
         # Emulate SCD2 update in demo dataset
-        dept_names = {1: "Research & Development", 2: "Sales", 3: "Human Resources", 4: "Engineering & IT", 5: "Finance & Operations"}
+        dept_names = {d["department_id"]: d["department_name"] for d in DEFAULT_DEPARTMENTS}
         dept_name = dept_names.get(new_dept_id, "General")
         today_str = str(effective_date or date.today())
 
@@ -438,6 +508,9 @@ class DataProvider:
 
             {"review_id": 11, "employee_id": 108, "full_name": "Michael Chang", "department_name": "Finance & Operations", "job_role": "Manager", "year_num": 2024, "performance_rating": 4.6, "job_satisfaction": 4, "monthly_income": 14800.0},
             {"review_id": 12, "employee_id": 108, "full_name": "Michael Chang", "department_name": "Finance & Operations", "job_role": "Manager", "year_num": 2023, "performance_rating": 4.5, "job_satisfaction": 4, "monthly_income": 13900.0},
+
+            {"review_id": 13, "employee_id": 105, "full_name": "Priya Sharma", "department_name": "Human Resources", "job_role": "Human Resources Specialist", "year_num": 2024, "performance_rating": 4.5, "job_satisfaction": 4, "monthly_income": 5400.0},
+            {"review_id": 14, "employee_id": 105, "full_name": "Priya Sharma", "department_name": "Human Resources", "job_role": "Human Resources Specialist", "year_num": 2023, "performance_rating": 4.2, "job_satisfaction": 3, "monthly_income": 4900.0},
         ]
         self._demo_reviews_df = pd.DataFrame(reviews_data)
 

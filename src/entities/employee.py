@@ -37,6 +37,7 @@ class Employee:
         years_at_company: int = 0,
         attrition: str = "No",
         updated_at: Optional[datetime] = None,
+        department_name: Optional[str] = None,
     ):
         self.employee_id = employee_id
         self.employee_number = employee_number
@@ -46,6 +47,7 @@ class Employee:
         self.gender = gender
         self.age = age
         self.department_id = department_id
+        self.department_name = department_name
         self.job_role = job_role.strip() if job_role else ""
         self.job_level = job_level
         self._monthly_income = Decimal(str(monthly_income))
@@ -142,6 +144,7 @@ class Employee:
             "gender": self.gender,
             "age": self.age,
             "department_id": self.department_id,
+            "department_name": self.department_name,
             "job_role": self.job_role,
             "job_level": self.job_level,
             "monthly_income": self.monthly_income,
@@ -177,6 +180,7 @@ class Employee:
             attrition=data.get("attrition", "No"),
             hire_date=hire_d,
             updated_at=data.get("updated_at"),
+            department_name=data.get("department_name"),
         )
 
     def __repr__(self) -> str:

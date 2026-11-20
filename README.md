@@ -306,6 +306,7 @@ To deploy this application to Streamlit Community Cloud:
    DB_PORT = "3306"
    OLTP_DB_NAME = "enterprise_oltp"
    DW_DB_NAME = "enterprise_dw"
+   HR_SIGNUP_CODE = "choose-a-long-random-invitation-code"
    ```
 5. Click **Deploy!**
 

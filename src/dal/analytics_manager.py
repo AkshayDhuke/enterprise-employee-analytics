@@ -23,7 +23,7 @@ class AnalyticsManager(BaseManager):
         Executes Query 1: Top-performing employees by department using DENSE_RANK().
         Ranks employees per department and year based on performance rating, satisfaction, and salary.
         """
-        dept_filter = "WHERE department_name = :dept_name" if department_name else ""
+        dept_filter = "WHERE d.department_name = :dept_name" if department_name else ""
         sql = f"""
             WITH RankedDepartmentTalent AS (
                 SELECT 

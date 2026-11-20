@@ -49,12 +49,45 @@ class DatabaseConnection:
             if self._initialized:
                 return
 
-            self.user = user or os.getenv("DB_USER", "root")
-            self.password = password or os.getenv("DB_PASSWORD", "root@2003")
-            self.host = host or os.getenv("DB_HOST", "127.0.0.1")
-            self.port = port or os.getenv("DB_PORT", "3306")
-            self.oltp_db = oltp_db
-            self.dw_db = dw_db
+            def _get_val(key: str, default: str) -> str:
+                # 1. Check direct environment variables (case-insensitive)
+                for env_k in (key, key.lower(), key.upper()):
+                    val = os.getenv(env_k)
+                    if val:
+                        return val
+                # 2. Check Streamlit Cloud secrets (top-level and nested sections)
+                try:
+                    import streamlit as st
+                    if hasattr(st, "secrets"):
+                        # Top-level check (case-insensitive)
+                        for sec_k, sec_v in st.secrets.items():
+                            if sec_k.lower() == key.lower():
+                                return str(sec_v)
+                        # Nested sections check (e.g. [tidb], [mysql], [database], [connections])
+                        for sec_name in ["tidb", "mysql", "database", "connections", "tidbcloud"]:
+                            if sec_name in st.secrets and hasattr(st.secrets[sec_name], "items"):
+                                for sub_k, sub_v in st.secrets[sec_name].items():
+                                    short_k = key.lower().replace("db_", "")
+                                    if sub_k.lower() in (key.lower(), short_k):
+                                        return str(sub_v)
+                except Exception:
+                    pass
+                return default
+
+            # Auto-detect Streamlit Cloud environment or headless containers
+            is_cloud = os.path.exists("/mount/src") or "STREAMLIT" in os.environ.get("HOSTNAME", "")
+
+            default_user = "3W1Y2fU7xQME74Y.root" if is_cloud else "root"
+            default_pwd = "h9U454ewoOyWb4MH" if is_cloud else "root@2003"
+            default_host = "gateway01.ap-northeast-1.prod.aws.tidbcloud.com" if is_cloud else "127.0.0.1"
+            default_port = "4000" if is_cloud else "3306"
+
+            self.user = user or _get_val("DB_USER", default_user)
+            self.password = password or _get_val("DB_PASSWORD", default_pwd)
+            self.host = host or _get_val("DB_HOST", default_host)
+            self.port = port or _get_val("DB_PORT", default_port)
+            self.oltp_db = oltp_db or _get_val("OLTP_DB_NAME", "enterprise_oltp")
+            self.dw_db = dw_db or _get_val("DW_DB_NAME", "enterprise_dw")
 
             encoded_pwd = urllib.parse.quote_plus(self.password)
             # Connection URLs
@@ -67,6 +100,12 @@ class DatabaseConnection:
             self._oltp_engine: Engine = None
             self._dw_engine: Engine = None
 
+            # SSL connect args for cloud databases (e.g. TiDB Cloud)
+            self._connect_args = {}
+            ssl_val = _get_val("DB_SSL", "false")
+            if ssl_val.lower() in ("true", "1") or "tidbcloud.com" in self.host.lower():
+                self._connect_args["ssl"] = {}
+
             self._initialized = True
 
     @property
@@ -77,6 +116,7 @@ class DatabaseConnection:
                 if self._oltp_engine is None:
                     self._oltp_engine = create_engine(
                         self._oltp_url,
+                        connect_args=self._connect_args,
                         pool_size=self._pool_size,
                         max_overflow=self._max_overflow,
                         pool_recycle=3600,
@@ -92,6 +132,7 @@ class DatabaseConnection:
                 if self._dw_engine is None:
                     self._dw_engine = create_engine(
                         self._dw_url,
+                        connect_args=self._connect_args,
                         pool_size=self._pool_size,
                         max_overflow=self._max_overflow,
                         pool_recycle=3600,
@@ -153,5 +194,5 @@ class DatabaseConnection:
             self._oltp_engine.dispose()
         if hasattr(self, "_dw_engine") and self._dw_engine:
             self._dw_engine.dispose()
-        DatabaseConnection._instance = None
+        DatabaseConnection._instances.clear()
         self._initialized = False
