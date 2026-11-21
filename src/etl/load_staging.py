@@ -16,7 +16,10 @@ MYSQL_PORT = os.getenv("DB_PORT", "3306")
 encoded_password = urllib.parse.quote_plus(MYSQL_PASSWORD)
 STAGING_URL = f"mysql+pymysql://{MYSQL_USER}:{encoded_password}@{MYSQL_HOST}:{MYSQL_PORT}/enterprise_staging"
 
-RAW_CSV = r"C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\data\stg_ibm_hr_raw.csv"
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+RAW_CSV = os.getenv("RAW_CSV", str(PROJECT_ROOT / "data" / "stg_ibm_hr_raw.csv"))
 
 def load_single_flat_staging():
     print(f"[*] Reading raw scaled dataset: {RAW_CSV}")

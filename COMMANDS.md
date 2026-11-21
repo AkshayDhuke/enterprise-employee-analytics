@@ -26,19 +26,19 @@ pip install pandas numpy faker sqlalchemy pymysql streamlit plotly python-dotenv
 ### Run the Data Synthesizer
 Scales the authentic Kaggle IBM HR Analytics dataset (1,470 rows) up to 100,000+ distinct employees (121,426 rows including engineered historical SCD Type 2 progression records) and saves it into `data/stg_ibm_hr_raw.csv`:
 ```powershell
-python "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\src\synthesizer\synthesizer.py"
+python src/synthesizer/synthesizer.py
 ```
 
 ### Create the Single Flat Staging Table in MySQL
 Executes `sql/00_staging_schema.sql` to create `enterprise_staging.stg_ibm_hr_raw`:
 ```powershell
-Get-Content "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\sql\00_staging_schema.sql" | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -proot@2003
+Get-Content sql/00_staging_schema.sql | mysql -u root -p
 ```
 
 ### Ingest the Scaled Staging Dataset into MySQL
 Loads all 121,426 records in chunks directly into MySQL:
 ```powershell
-python "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\src\etl\load_staging.py"
+python src/etl/load_staging.py
 ```
 
 ### Verify Staging Row Counts in MySQL
@@ -60,31 +60,31 @@ FROM stg_ibm_hr_raw;
 ### Create Normalized OLTP Schema (3NF)
 Creates `enterprise_oltp` with tables: `departments`, `employees`, `projects`, `project_assignments`, `performance_reviews`:
 ```powershell
-Get-Content "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\sql\01_oltp_schema.sql" | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -proot@2003
+Get-Content sql/01_oltp_schema.sql | mysql -u root -p
 ```
 
 ### Create Dimensional Data Warehouse Schema (Star Schema with SCD2)
 Creates `enterprise_dw` with `Dim_Date`, `Dim_Department`, `Dim_Project`, `Dim_Employee` (SCD Type 2), `Fact_PerformanceReviews`, `Fact_ProjectAllocations`:
 ```powershell
-Get-Content "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\sql\02_olap_schema.sql" | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -proot@2003
+Get-Content sql/02_olap_schema.sql | mysql -u root -p
 ```
 
 ### Compile ETL Stored Procedures (CTEs, Window Functions & SCD2)
 Compiles `sp_populate_dim_date`, `sp_etl_staging_to_oltp`, `sp_etl_load_dimensions`, `sp_update_employee_scd2`, and fact table loaders in MySQL:
 ```powershell
-Get-Content "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\sql\03_stored_procedures_etl.sql" | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -proot@2003
+Get-Content sql/03_stored_procedures_etl.sql | mysql -u root -p
 ```
 
 ### Execute Full End-to-End ETL Pipeline (Python Orchestrator)
 Extracts, cleans, ranks (using Window functions), normalizes into OLTP, and loads into the Star Schema warehouse:
 ```powershell
-python "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\src\etl\etl_pipeline.py"
+python src/etl/etl_pipeline.py
 ```
 
 ### Test Advanced Analytical SQL Queries (DENSE_RANK, LAG, NTILE)
 Executes complex analytical queries on the Star Schema:
 ```powershell
-Get-Content "C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\sql\04_advanced_analytical_queries.sql" | & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -proot@2003
+Get-Content sql/04_advanced_analytical_queries.sql | mysql -u root -p
 ```
 
 ---

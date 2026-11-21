@@ -18,8 +18,11 @@ Faker.seed(42)
 np.random.seed(42)
 random.seed(42)
 
-BASE_IBM_CSV = r"C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\data\ibm_hr_attrition_base.csv"
-OUTPUT_DIR = r"C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\data"
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+BASE_IBM_CSV = os.getenv("BASE_IBM_CSV", str(PROJECT_ROOT / "data" / "ibm_hr_attrition_base.csv"))
+OUTPUT_DIR = os.getenv("OUTPUT_DIR", str(PROJECT_ROOT / "data"))
 
 def generate_unified_raw_staging_dataset(target_employees=100000, scd2_ratio=0.25):
     print(f"[*] Ingesting authentic Kaggle IBM HR dataset: {BASE_IBM_CSV}")

@@ -19,7 +19,14 @@ encoded_password = urllib.parse.quote_plus(MYSQL_PASSWORD)
 OLTP_URL = f"mysql+pymysql://{MYSQL_USER}:{encoded_password}@{MYSQL_HOST}:{MYSQL_PORT}/enterprise_oltp"
 DW_URL = f"mysql+pymysql://{MYSQL_USER}:{encoded_password}@{MYSQL_HOST}:{MYSQL_PORT}/enterprise_dw"
 
-def load_data(data_dir=r"C:\Users\dhuke\.gemini\antigravity\scratch\enterprise-employee-warehouse\data"):
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_DATA_DIR = os.getenv("DATA_DIR", str(PROJECT_ROOT / "data"))
+
+def load_data(data_dir=None):
+    if data_dir is None:
+        data_dir = DEFAULT_DATA_DIR
     print("[*] Connecting to MySQL instances...")
     oltp_engine = create_engine(OLTP_URL)
     dw_engine = create_engine(DW_URL)
